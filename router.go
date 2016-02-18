@@ -110,28 +110,22 @@ func (r *Route) Name(name string) {
 	if name == "" {
 		return
 	}
-	pRune := []rune(r.pattern)
-	p := make([]rune, 0, len(pRune))
-	var j int
-	for i, c := range pRune {
-		if i < j {
+	p := make([]byte, 0, len(r.pattern))
+	for i := 0; i < len(r.pattern); i++ {
+		if r.pattern[i] != ':' {
+			p = append(p, r.pattern[i])
 			continue
 		}
-		j++
-		if c == ':' {
-			p = append(p, '%')
-			p = append(p, 'v')
-			for ; j < len(pRune); j++ {
-				if !isParamChar(pRune[j]) {
-					break
-				}
+		p = append(p, '%')
+		p = append(p, 'v')
+		for i = i + 1; i < len(r.pattern); i++ {
+			if !isParamChar(r.pattern[i]) {
+				i--
+				break
 			}
-			continue
 		}
-		p = append(p, c)
 	}
 	r.router.routeNamedMap[name] = string(p)
-	r.router.baa.Logger().Printf("debug route.name, %s \t %s", name, r.router.routeNamedMap[name])
 }
 
 // handle if ether handle return not nil then break aother handle
@@ -146,7 +140,7 @@ func (r *Route) handle(c *Context) error {
 }
 
 // isParamChar check the char can used for route params
-func isParamChar(c rune) bool {
+func isParamChar(c byte) bool {
 	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) {
 		return true
 	}

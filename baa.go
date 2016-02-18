@@ -78,7 +78,7 @@ func New() *Baa {
 	b.pool.New = func() interface{} {
 		return NewContext(nil, nil, nil)
 	}
-	b.SetLogger(log.New(os.Stderr, "[Baa]", log.LstdFlags))
+	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDIer(NewDI())
 	b.SetRouter(NewRouter(b))
 	return b
@@ -113,8 +113,10 @@ func (b *Baa) RunTLSServer(s *http.Server, crtFile, keyFile string) {
 func (b *Baa) run(s *http.Server, files ...string) {
 	s.Handler = b
 	if len(files) == 0 {
+		b.logger.Printf("Listen %s", s.Addr)
 		b.logger.Fatal(s.ListenAndServe())
 	} else if len(files) == 2 {
+		b.logger.Printf("Listen %s with TLS", s.Addr)
 		b.logger.Fatal(s.ListenAndServeTLS(files[0], files[1]))
 	} else {
 		b.logger.Fatal("invalid TLS configuration")
