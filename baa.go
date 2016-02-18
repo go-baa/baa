@@ -36,14 +36,8 @@ type Baa struct {
 	render           Renderer
 }
 
-// Middleware ...
-type Middleware interface{}
-
 // MiddlewareFunc ...
 type MiddlewareFunc func(HandlerFunc) HandlerFunc
-
-// Handler ...
-type Handler interface{}
 
 // HandlerFunc context handler
 type HandlerFunc func(*Context) error
@@ -133,7 +127,7 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.reset(w, r, b)
 
 	var h HandlerFunc
-	route := b.router.Match(r.Method, r.URL.Path)
+	route := b.router.Match(r.Method, r.URL.Path, c)
 	if route == nil {
 		// notFound
 		h = b.router.GetNotFoundHandler()
@@ -173,8 +167,8 @@ func (b *Baa) SetLogger(logger Logger) {
 	b.logger = logger
 }
 
-// GetLogger ...
-func (b *Baa) GetLogger() Logger {
+// Logger return baa logger
+func (b *Baa) Logger() Logger {
 	return b.logger
 }
 
@@ -208,8 +202,8 @@ func (b *Baa) DefaultHTTPErrorHandler(err error, c *Context) {
 }
 
 // Use registers a middleware
-func (b *Baa) Use(m Middleware) {
-	b.middleware = append(b.middleware, wrapMiddleware(m))
+func (b *Baa) Use(m MiddlewareFunc) {
+	b.middleware = append(b.middleware, m)
 }
 
 // SetDI registers a dependency injection
@@ -232,7 +226,7 @@ func (b *Baa) SetAutoHead(v bool) {
 //
 // Example:
 // 		baa.route("/", "GET,POST", h)
-func (b *Baa) Route(pattern, methods string, h ...Handler) *Route {
+func (b *Baa) Route(pattern, methods string, h ...HandlerFunc) *Route {
 	var rs *Route
 	for _, m := range strings.Split(methods, ",") {
 		rs = b.router.add(strings.TrimSpace(m), pattern, h)
@@ -241,12 +235,12 @@ func (b *Baa) Route(pattern, methods string, h ...Handler) *Route {
 }
 
 // Group registers a list of same prefix route
-func (b *Baa) Group(pattern string, fn func(), h ...Handler) {
+func (b *Baa) Group(pattern string, fn func(), h ...HandlerFunc) {
 
 }
 
 // Get is a shortcut for b.router.handle("GET", pattern, handlers)
-func (b *Baa) Get(pattern string, h ...Handler) *Route {
+func (b *Baa) Get(pattern string, h ...HandlerFunc) *Route {
 	rs := b.router.add("GET", pattern, h)
 	if b.router.autoHead {
 		b.Head(pattern, h...)
@@ -255,43 +249,48 @@ func (b *Baa) Get(pattern string, h ...Handler) *Route {
 }
 
 // Patch is a shortcut for b.router.handle("PATCH", pattern, handlers)
-func (b *Baa) Patch(pattern string, h ...Handler) *Route {
+func (b *Baa) Patch(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("PATCH", pattern, h)
 }
 
 // Post is a shortcut for b.router.handle("POST", pattern, handlers)
-func (b *Baa) Post(pattern string, h ...Handler) *Route {
+func (b *Baa) Post(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("POST", pattern, h)
 }
 
 // Put is a shortcut for b.router.handle("PUT", pattern, handlers)
-func (b *Baa) Put(pattern string, h ...Handler) *Route {
+func (b *Baa) Put(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("PUT", pattern, h)
 }
 
 // Delete is a shortcut for b.router.handle("DELETE", pattern, handlers)
-func (b *Baa) Delete(pattern string, h ...Handler) *Route {
+func (b *Baa) Delete(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("DELETE", pattern, h)
 }
 
 // Options is a shortcut for b.router.handle("OPTIONS", pattern, handlers)
-func (b *Baa) Options(pattern string, h ...Handler) *Route {
+func (b *Baa) Options(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("OPTIONS", pattern, h)
 }
 
 // Head is a shortcut for b.router.handle("HEAD", pattern, handlers)
-func (b *Baa) Head(pattern string, h ...Handler) *Route {
+func (b *Baa) Head(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("HEAD", pattern, h)
 }
 
 // Any is a shortcut for b.router.handle("*", pattern, handlers)
-func (b *Baa) Any(pattern string, h ...Handler) *Route {
+func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("*", pattern, h)
 }
 
 // NotFound set 404 router
-func (b *Baa) NotFound(h Handler) {
+func (b *Baa) NotFound(h HandlerFunc) {
 	b.router.NotFound(h)
+}
+
+// URLFor use named route return format url
+func (b *Baa) URLFor(name string, args ...interface{}) string {
+	return b.router.URLFor(name, args...)
 }
 
 // NewHTTPError creates a new HTTPError instance.
@@ -317,79 +316,4 @@ func (e *HTTPError) Code() int {
 // Error returns message.
 func (e *HTTPError) Error() string {
 	return e.message
-}
-
-// wrapMiddleware wraps middleware.
-func wrapMiddleware(m Middleware) MiddlewareFunc {
-	switch m := m.(type) {
-	case MiddlewareFunc:
-		return m
-	case func(HandlerFunc) HandlerFunc:
-		return m
-	case HandlerFunc:
-		return wrapHandlerFuncMiddleware(m)
-	case func(*Context) error:
-		return wrapHandlerFuncMiddleware(m)
-	case func(http.Handler) http.Handler:
-		return func(h HandlerFunc) HandlerFunc {
-			return func(c *Context) (err error) {
-				m(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					c.Resp = w
-					c.Req = r
-					err = h(c)
-				})).ServeHTTP(c.Resp, c.Req)
-				return
-			}
-		}
-	case http.Handler:
-		return wrapHTTPHandlerFuncMiddleware(m.ServeHTTP)
-	case func(http.ResponseWriter, *http.Request):
-		return wrapHTTPHandlerFuncMiddleware(m)
-	default:
-		panic("unknown middleware")
-	}
-}
-
-// wrapHandlerFuncMiddleware wraps HandlerFunc middleware.
-func wrapHandlerFuncMiddleware(m HandlerFunc) MiddlewareFunc {
-	return func(h HandlerFunc) HandlerFunc {
-		return func(c *Context) error {
-			if err := m(c); err != nil {
-				return err
-			}
-			return h(c)
-		}
-	}
-}
-
-// wrapHTTPHandlerFuncMiddleware wraps http.HandlerFunc middleware.
-func wrapHTTPHandlerFuncMiddleware(m http.HandlerFunc) MiddlewareFunc {
-	return func(h HandlerFunc) HandlerFunc {
-		return func(c *Context) error {
-			m.ServeHTTP(c.Resp, c.Req)
-			return h(c)
-		}
-	}
-}
-
-// wrapHandler wraps handler.
-func wrapHandler(h Handler) HandlerFunc {
-	switch h := h.(type) {
-	case HandlerFunc:
-		return h
-	case func(*Context) error:
-		return h
-	case http.Handler, http.HandlerFunc:
-		return func(c *Context) error {
-			h.(http.Handler).ServeHTTP(c.Resp, c.Req)
-			return nil
-		}
-	case func(http.ResponseWriter, *http.Request):
-		return func(c *Context) error {
-			h(c.Resp, c.Req)
-			return nil
-		}
-	default:
-		panic("unknown handler")
-	}
 }

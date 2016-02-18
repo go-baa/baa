@@ -1,7 +1,7 @@
 package baa
 
 import (
-	//"net/http"
+	"fmt"
 	"sync"
 )
 
@@ -46,7 +46,10 @@ func NewRouter(b *Baa) *Router {
 }
 
 // Handle registers a new request handle with the given pattern, method and handlers.
-func (r *Router) add(method string, pattern string, handlers []Handler) *Route {
+func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Route {
+	if pattern == "" {
+		panic("route pattern can not be emtpy!")
+	}
 	var ru *Route
 	var ok bool
 	if _, ok = METHODS[method]; !ok {
@@ -62,9 +65,8 @@ func (r *Router) add(method string, pattern string, handlers []Handler) *Route {
 		ru.handlers = make([]HandlerFunc, 0, 1)
 		r.routeMap[method][pattern] = ru
 	}
-	for _, h := range handlers {
-		ru.handlers = append(ru.handlers, wrapHandler(h))
-	}
+	ru.handlers = append(ru.handlers, handlers...)
+
 	return ru
 }
 
@@ -72,8 +74,8 @@ func (r *Router) add(method string, pattern string, handlers []Handler) *Route {
 // Configurable http.HandlerFunc which is called when no matching route is
 // found. If it is not set, http.NotFound is used.
 // Be sure to set 404 response code in your handler.
-func (r *Router) NotFound(h Handler) {
-	r.notFoundHandler = wrapHandler(h)
+func (r *Router) NotFound(h HandlerFunc) {
+	r.notFoundHandler = h
 }
 
 // GetNotFoundHandler ...
@@ -82,7 +84,7 @@ func (r *Router) GetNotFoundHandler() HandlerFunc {
 }
 
 // Match match the uri for handler
-func (r *Router) Match(method, uri string) *Route {
+func (r *Router) Match(method, uri string, c *Context) *Route {
 	for p := range r.routeMap[method] {
 		if p == uri {
 			return r.routeMap[method][p]
@@ -91,32 +93,48 @@ func (r *Router) Match(method, uri string) *Route {
 	return nil
 }
 
-// ServeHTTP implements the Handler interface and can be registered to a HTTP server
-// func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-// 	c := NewContext(w, req, r.baa)
-// 	route := r.Match(req.Method, req.URL.Path)
-// 	if route != nil {
-// 		route.handle(c)
-// 		return
-// 	}
-
-// 	// 404
-// 	if r.notFoundHandler == nil {
-// 		http.NotFound(w, req)
-// 	} else {
-// 		r.notFoundHandler(c)
-// 	}
-// }
+// URLFor use named route return format url
+func (r *Router) URLFor(name string, args ...interface{}) string {
+	if name == "" {
+		return ""
+	}
+	url := r.routeNamedMap[name]
+	if url == "" {
+		return ""
+	}
+	return fmt.Sprintf(url, args...)
+}
 
 // Name set name of route
 func (r *Route) Name(name string) {
 	if name == "" {
 		return
 	}
-	r.router.routeNamedMap[name] = r.pattern
+	pRune := []rune(r.pattern)
+	p := make([]rune, 0, len(pRune))
+	var j int
+	for i, c := range pRune {
+		if i < j {
+			continue
+		}
+		j++
+		if c == ':' {
+			p = append(p, '%')
+			p = append(p, 'v')
+			for ; j < len(pRune); j++ {
+				if !isParamChar(pRune[j]) {
+					break
+				}
+			}
+			continue
+		}
+		p = append(p, c)
+	}
+	r.router.routeNamedMap[name] = string(p)
+	r.router.baa.Logger().Printf("debug route.name, %s \t %s", name, r.router.routeNamedMap[name])
 }
 
-// handle ...
+// handle if ether handle return not nil then break aother handle
 func (r *Route) handle(c *Context) error {
 	for _, h := range r.handlers {
 		err := h(c)
@@ -125,4 +143,12 @@ func (r *Route) handle(c *Context) error {
 		}
 	}
 	return nil
+}
+
+// isParamChar check the char can used for route params
+func isParamChar(c rune) bool {
+	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) {
+		return true
+	}
+	return false
 }

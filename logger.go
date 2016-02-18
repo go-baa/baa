@@ -1,6 +1,6 @@
 package baa
 
-// Logger provlider a log interface for baa
+// Logger provlider a basic log interface for baa
 type Logger interface {
 	Print(v ...interface{})
 	Printf(format string, v ...interface{})

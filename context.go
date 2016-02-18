@@ -7,10 +7,11 @@ import (
 // Context provlider a HTTP context for baa
 // context contains reqest, response, header, cookie and some content type.
 type Context struct {
-	Req  *http.Request
-	Resp http.ResponseWriter
-	Data map[string]interface{}
-	baa  *Baa
+	Req    *http.Request
+	Resp   http.ResponseWriter
+	Data   map[string]interface{}
+	baa    *Baa
+	params map[string]string
 }
 
 // NewContext create a http context
@@ -26,6 +27,47 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request, b *Baa) {
 	c.Resp = w
 	c.baa = b
 	c.Data = make(map[string]interface{})
+	c.params = make(map[string]string)
+}
+
+// Param get route param from context
+func (c *Context) Param(name string) string {
+	return c.params[name]
+}
+
+// Query get a param from http.Request.Form
+func (c *Context) Query(name string) string {
+	return ""
+}
+
+// QueryInt get a param from http.Request.Form and format to int
+func (c *Context) QueryInt(name string) int {
+	return 0
+}
+
+// QueryFloat get a param from http.Request.Form and format to float64
+func (c *Context) QueryFloat(name string) float64 {
+	return 0.0
+}
+
+// QueryBool get a param from http.Request.Form and format to bool
+func (c *Context) QueryBool(name string) bool {
+	return false
+}
+
+// QueryStrings get a group param from http.Request.Form and format to string slice
+func (c *Context) QueryStrings(name string) []string {
+	return nil
+}
+
+// Gets return http.Request.URL queryString params
+func (c *Context) Gets() map[string]interface{} {
+	return nil
+}
+
+// Posts return http.Request form data
+func (c *Context) Posts() map[string]interface{} {
+	return nil
 }
 
 // String write text by string
@@ -41,6 +83,26 @@ func (c *Context) Text(code int, s []byte) error {
 	c.Resp.Header().Set("Content-Type", "charset=utf-8")
 	c.Resp.WriteHeader(code)
 	c.Resp.Write(s)
+	return nil
+}
+
+// JSON write data by json format
+func (c *Context) JSON(code int, d interface{}) error {
+	return nil
+}
+
+// JSONP write data by jsonp format
+func (c *Context) JSONP(code int, d interface{}) error {
+	return nil
+}
+
+// XML write data by XML format
+func (c *Context) XML(code int, d interface{}) error {
+	return nil
+}
+
+// HTML write data by html template engine, use context.Data
+func (c *Context) HTML(code int, tpl string) error {
 	return nil
 }
 
