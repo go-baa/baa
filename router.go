@@ -1,120 +1,128 @@
 package baa
 
-import "strings"
-
-var (
-	// _HTTP_METHODS Known HTTP methods.
-	_HTTP_METHODS = map[string]bool{
-		"GET":     true,
-		"POST":    true,
-		"PUT":     true,
-		"DELETE":  true,
-		"PATCH":   true,
-		"OPTIONS": true,
-		"HEAD":    true,
-	}
+import (
+	//"net/http"
+	"sync"
 )
+
+// METHODS 定义支持的HTTP method
+var METHODS = map[string]bool{
+	"GET":     true,
+	"POST":    true,
+	"PUT":     true,
+	"DELETE":  true,
+	"PATCH":   true,
+	"OPTIONS": true,
+	"HEAD":    true,
+}
 
 // Router provlider router for baa
 type Router struct {
-	autoHead bool
+	mu              sync.RWMutex
+	autoHead        bool
+	routeMap        map[string]map[string]*Route
+	routeNamedMap   map[string]string
+	notFoundHandler HandlerFunc
+	baa             *Baa
 }
 
 // Route is a single route
 type Route struct {
+	pattern  string
+	handlers []HandlerFunc
+	router   *Router
 }
 
-// Handler provlider handle function
-type Handler func(*Context)
-
-// Name set name of route
-func (r *Route) Name(name string) {
-
-}
-
-// SetAutoHead sets the value who determines whether add HEAD method automatically
-// when GET method is added. Combo router will not be affected by this value.
-func (r *Router) SetAutoHead(v bool) {
-	r.autoHead = v
+// NewRouter create a router instance
+func NewRouter(b *Baa) *Router {
+	r := new(Router)
+	r.baa = b
+	r.routeMap = make(map[string]map[string]*Route)
+	for m := range METHODS {
+		r.routeMap[m] = make(map[string]*Route)
+	}
+	r.routeNamedMap = make(map[string]string)
+	return r
 }
 
 // Handle registers a new request handle with the given pattern, method and handlers.
-func (r *Router) Handle(method string, pattern string, handlers []Handler) *Route {
-	return nil
-}
-
-// Group registers a list of same prefix route
-func (r *Router) Group(pattern string, fn func(), h ...Handler) {
-
-}
-
-// Get is a shortcut for r.Handle("GET", pattern, handlers)
-func (r *Router) Get(pattern string, h ...Handler) *Route {
-	rs := r.Handle("GET", pattern, h)
-	if r.autoHead {
-		r.Head(pattern, h...)
+func (r *Router) add(method string, pattern string, handlers []Handler) *Route {
+	var ru *Route
+	var ok bool
+	if _, ok = METHODS[method]; !ok {
+		panic("unsupport http method [" + method + "]")
 	}
-	return rs
-}
-
-// Patch is a shortcut for r.Handle("PATCH", pattern, handlers)
-func (r *Router) Patch(pattern string, h ...Handler) *Route {
-	return r.Handle("PATCH", pattern, h)
-}
-
-// Post is a shortcut for r.Handle("POST", pattern, handlers)
-func (r *Router) Post(pattern string, h ...Handler) *Route {
-	return r.Handle("POST", pattern, h)
-}
-
-// Put is a shortcut for r.Handle("PUT", pattern, handlers)
-func (r *Router) Put(pattern string, h ...Handler) *Route {
-	return r.Handle("PUT", pattern, h)
-}
-
-// Delete is a shortcut for r.Handle("DELETE", pattern, handlers)
-func (r *Router) Delete(pattern string, h ...Handler) *Route {
-	return r.Handle("DELETE", pattern, h)
-}
-
-// Options is a shortcut for r.Handle("OPTIONS", pattern, handlers)
-func (r *Router) Options(pattern string, h ...Handler) *Route {
-	return r.Handle("OPTIONS", pattern, h)
-}
-
-// Head is a shortcut for r.Handle("HEAD", pattern, handlers)
-func (r *Router) Head(pattern string, h ...Handler) *Route {
-	return r.Handle("HEAD", pattern, h)
-}
-
-// Any is a shortcut for r.Handle("*", pattern, handlers)
-func (r *Router) Any(pattern string, h ...Handler) *Route {
-	return r.Handle("*", pattern, h)
-}
-
-// Route is a shortcut for same handlers but different HTTP methods.
-//
-// Example:
-// 		m.Route("/", "GET,POST", h)
-func (r *Router) Route(pattern, methods string, h ...Handler) (route *Route) {
-	for _, m := range strings.Split(methods, ",") {
-		route = r.Handle(strings.TrimSpace(m), pattern, h)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if ru, ok = r.routeMap[method][pattern]; !ok {
+		ru = &Route{
+			pattern: pattern,
+			router:  r,
+		}
+		ru.handlers = make([]HandlerFunc, 0, 1)
+		r.routeMap[method][pattern] = ru
 	}
-	return route
+	for _, h := range handlers {
+		ru.handlers = append(ru.handlers, wrapHandler(h))
+	}
+	return ru
 }
 
 // NotFound set the route not match result.
 // Configurable http.HandlerFunc which is called when no matching route is
 // found. If it is not set, http.NotFound is used.
 // Be sure to set 404 response code in your handler.
-func (r *Router) NotFound(handlers ...Handler) {
-
+func (r *Router) NotFound(h Handler) {
+	r.notFoundHandler = wrapHandler(h)
 }
 
-// InternalServerError set the application accer panic.
-// Configurable handler which is called when route handler returns
-// error. If it is not set, default handler is used.
-// Be sure to set 500 response code in your handler.
-func (r *Router) InternalServerError(handlers ...Handler) {
+// GetNotFoundHandler ...
+func (r *Router) GetNotFoundHandler() HandlerFunc {
+	return r.notFoundHandler
+}
 
+// Match match the uri for handler
+func (r *Router) Match(method, uri string) *Route {
+	for p := range r.routeMap[method] {
+		if p == uri {
+			return r.routeMap[method][p]
+		}
+	}
+	return nil
+}
+
+// ServeHTTP implements the Handler interface and can be registered to a HTTP server
+// func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+// 	c := NewContext(w, req, r.baa)
+// 	route := r.Match(req.Method, req.URL.Path)
+// 	if route != nil {
+// 		route.handle(c)
+// 		return
+// 	}
+
+// 	// 404
+// 	if r.notFoundHandler == nil {
+// 		http.NotFound(w, req)
+// 	} else {
+// 		r.notFoundHandler(c)
+// 	}
+// }
+
+// Name set name of route
+func (r *Route) Name(name string) {
+	if name == "" {
+		return
+	}
+	r.router.routeNamedMap[name] = r.pattern
+}
+
+// handle ...
+func (r *Route) handle(c *Context) error {
+	for _, h := range r.handlers {
+		err := h(c)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
