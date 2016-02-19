@@ -1,7 +1,7 @@
 package baa
 
-import(
-    "errors"
+import (
+	"errors"
 )
 
 var (

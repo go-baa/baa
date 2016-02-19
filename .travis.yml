@@ -22,7 +22,7 @@ install:
 script:
   - go vet ./...
   - go test -v -race ./...
-  - diff -u <(baa -n) <(gofmt -d -s .)
+  - diff -u <(echo -n) <(gofmt -d -s .)
   - go test -v -coverprofile=baa.coverprofile
   - gover
   - goveralls -coverprofile=gover.coverprofile -service=travis-ci
