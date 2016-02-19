@@ -1,9 +1,8 @@
 // Package baa provider a fast & simple Go web framework, routing, middleware, dependency injection, http context.
 /*
 app := baa.Classic()
-app.Get("/", function(c *baa.Context) error {
+app.Get("/", function(c *baa.Context) {
     c.String(200, "Hello World!")
-    return nil
 })
 app.Run(":8001")
 */
@@ -35,22 +34,22 @@ const (
 
 // Baa provlider an application
 type Baa struct {
-	name             string
-	router           *Router
-	logger           Logger
-	debug            bool
-	httpErrorHandler HTTPErrorHandler
-	middleware       []HandlerFunc
-	di               *DI
-	pool             sync.Pool
-	render           Renderer
+	debug        bool
+	name         string
+	di           *DI
+	router       *Router
+	logger       Logger
+	render       Renderer
+	pool         sync.Pool
+	errorHandler ErrorHandleFunc
+	middleware   []HandlerFunc
 }
 
 // HandlerFunc context handler
-type HandlerFunc func(*Context) error
+type HandlerFunc func(*Context)
 
-// HTTPErrorHandler is a centralized HTTP error handler.
-type HTTPErrorHandler func(error, *Context)
+// ErrorHandleFunc HTTP error handleFunc
+type ErrorHandleFunc func(error, *Context)
 
 // HTTPError represents an error that occured while handling a request.
 type HTTPError struct {
@@ -74,7 +73,7 @@ func App() *Baa {
 func Classic() *Baa {
 	b := New()
 	b.SetRender(NewRender())
-	b.SetHTTPErrorHandler(b.DefaultHTTPErrorHandler)
+	b.SetErrorHandler(b.DefaultErrorHandler)
 	return b
 }
 
@@ -83,7 +82,7 @@ func New() *Baa {
 	b := new(Baa)
 	b.middleware = make([]HandlerFunc, 0)
 	b.pool.New = func() interface{} {
-		return NewContext(nil, nil, nil)
+		return NewContext(nil, nil, b)
 	}
 	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDIer(NewDI())
@@ -133,7 +132,7 @@ func (b *Baa) run(s *http.Server, files ...string) {
 func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := b.pool.Get().(*Context)
 	defer b.pool.Put(c)
-	c.reset(w, r, b)
+	c.reset(w, r)
 
 	var h HandlerFunc
 	route := b.router.Match(r.Method, r.URL.Path, c)
@@ -141,9 +140,8 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// notFound
 		h = b.router.GetNotFoundHandler()
 		if h == nil {
-			h = func(c *Context) error {
+			h = func(c *Context) {
 				http.NotFound(c.Resp, c.Req)
-				return nil
 			}
 		}
 	} else {
@@ -186,13 +184,13 @@ func (b *Baa) SetRouter(r *Router) {
 	b.router = r
 }
 
-// SetHTTPErrorHandler registers a custom Baa.HTTPErrorHandler.
-func (b *Baa) SetHTTPErrorHandler(h HTTPErrorHandler) {
-	b.httpErrorHandler = h
+// SetErrorHandler registers a custom Baa.ErrorHandleFunc.
+func (b *Baa) SetErrorHandler(h ErrorHandleFunc) {
+	b.errorHandler = h
 }
 
-// DefaultHTTPErrorHandler invokes the default HTTP error handler.
-func (b *Baa) DefaultHTTPErrorHandler(err error, c *Context) {
+// DefaultErrorHandler invokes the default HTTP error handler.
+func (b *Baa) DefaultErrorHandler(err error, c *Context) {
 	code := http.StatusInternalServerError
 	msg := http.StatusText(code)
 	if he, ok := err.(*HTTPError); ok {

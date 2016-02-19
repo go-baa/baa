@@ -9,26 +9,27 @@ import (
 // context contains reqest, response, header, cookie and some content type.
 type Context struct {
 	Req    *http.Request
-	Resp   http.ResponseWriter
+	Resp   *Response
 	Data   map[string]interface{}
-	baa    *Baa
-	mi     int           // middleware order
-	mw     []HandlerFunc //middleware
 	params map[string]string
+	baa    *Baa
+	mw     []HandlerFunc //middleware
+	mi     int           // middleware order
 }
 
 // NewContext create a http context
 func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
-	c.reset(w, r, b)
+	c.Resp = NewResponse(w, b)
+	c.baa = b
+	c.reset(w, r)
 	return c
 }
 
 // reset ...
-func (c *Context) reset(w http.ResponseWriter, r *http.Request, b *Baa) {
-	c.Resp = w
+func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
+	c.Resp.reset(w)
 	c.Req = r
-	c.baa = b
 	c.Data = make(map[string]interface{})
 	c.params = make(map[string]string)
 	c.mw = make([]HandlerFunc, 0, MiddlewareMaxSize)
@@ -51,6 +52,12 @@ func (c *Context) ParamInt(name string) int {
 	return i
 }
 
+// ParamInt64 get route param from context and format to int64
+func (c *Context) ParamInt64(name string) int64 {
+	i, _ := strconv.ParseInt(c.params[name], 10, 64)
+	return i
+}
+
 // ParamFloat get route param from context and format to float64
 func (c *Context) ParamFloat(name string) float64 {
 	f, _ := strconv.ParseFloat(c.params[name], 64)
@@ -70,6 +77,11 @@ func (c *Context) Query(name string) string {
 
 // QueryInt get a param from http.Request.Form and format to int
 func (c *Context) QueryInt(name string) int {
+	return 0
+}
+
+// QueryInt64 get a param from http.Request.Form and format to int64
+func (c *Context) QueryInt64(name string) int64 {
 	return 0
 }
 
@@ -99,39 +111,33 @@ func (c *Context) Posts() map[string]interface{} {
 }
 
 // String write text by string
-func (c *Context) String(code int, s string) error {
+func (c *Context) String(code int, s string) {
 	c.Resp.Header().Set("Content-Type", "charset=utf-8")
 	c.Resp.WriteHeader(code)
 	c.Resp.Write([]byte(s))
-	return nil
 }
 
 // Text write text by []byte
-func (c *Context) Text(code int, s []byte) error {
+func (c *Context) Text(code int, s []byte) {
 	c.Resp.Header().Set("Content-Type", "charset=utf-8")
 	c.Resp.WriteHeader(code)
 	c.Resp.Write(s)
-	return nil
 }
 
 // JSON write data by json format
-func (c *Context) JSON(code int, d interface{}) error {
-	return nil
+func (c *Context) JSON(code int, d interface{}) {
 }
 
 // JSONP write data by jsonp format
-func (c *Context) JSONP(code int, d interface{}) error {
-	return nil
+func (c *Context) JSONP(code int, d interface{}) {
 }
 
 // XML write data by XML format
-func (c *Context) XML(code int, d interface{}) error {
-	return nil
+func (c *Context) XML(code int, d interface{}) {
 }
 
 // HTML write data by html template engine, use context.Data
-func (c *Context) HTML(code int, tpl string) error {
-	return nil
+func (c *Context) HTML(code int, tpl string) {
 }
 
 // Redirect redirects the request using http.Redirect with status code.
@@ -145,7 +151,7 @@ func (c *Context) Redirect(code int, url string) error {
 
 // Error invokes the registered HTTP error handler. Generally used by middleware.
 func (c *Context) Error(err error) {
-	c.baa.httpErrorHandler(err, c)
+	c.baa.errorHandler(err, c)
 }
 
 // Baa ...
@@ -158,8 +164,6 @@ func (c *Context) Next() {
 	f := c.mw[c.mi]
 	c.mi++
 	if f != nil {
-		if err := f(c); err != nil {
-			c.baa.httpErrorHandler(err, c)
-		}
+		f(c)
 	}
 }

@@ -337,15 +337,15 @@ func (r *Route) Name(name string) {
 	r.router.routeNamedMap[name] = string(p)
 }
 
-// handle if ether handle return not nil then break aother handle
-func (r *Route) handle(c *Context) error {
+// handle route hadnle chain
+// if something wrote, break chian and return
+func (r *Route) handle(c *Context) {
 	for _, h := range r.handlers {
-		err := h(c)
-		if err != nil {
-			return err
+		h(c)
+		if c.Resp.Wrote() {
+			return
 		}
 	}
-	return nil
 }
 
 // reset route handle
