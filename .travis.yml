@@ -6,8 +6,8 @@ go:
   - 1.5
   - 1.6
   - tip
+
 env:
-  global:
 
 before_install:
   - export PATH=$PATH:$GOPATH/bin
