@@ -1,0 +1,33 @@
+language: go
+sudo: false
+
+go:
+  - 1.4
+  - 1.5
+  - 1.6rc1
+  - tip
+env:
+  global:
+
+before_install:
+  - export PATH=$PATH:$GOPATH/bin
+  
+install:
+  - go get -t -v ./...
+
+script:
+  - go vet ./...
+  - go test -v -race ./...
+  - diff -u <(echo -n) <(gofmt -d -s .)
+  - go test -v -coverprofile=baa.coverprofile
+  - gover
+  - goveralls -coverprofile=gover.coverprofile -service=travis-ci
+
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+matrix:
+  allow_failures:
+    - go: tip
