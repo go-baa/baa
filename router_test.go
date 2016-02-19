@@ -7,9 +7,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+var r = NewRouter()
+var c = NewContext(nil, nil, nil)
+
 func TestRouteAdd1(t *testing.T) {
 	Convey("测试路由添加", t, func() {
-		r := NewRouter()
 		f := func(c *Context) error {
 			return nil
 		}
@@ -46,7 +48,6 @@ func TestRouteAdd1(t *testing.T) {
 
 func TestRouteAdd2(t *testing.T) {
 	Convey("测试参数路由添加", t, func() {
-		r := NewRouter()
 		f := func(c *Context) error {
 			return nil
 		}
@@ -62,7 +63,7 @@ func TestRouteAdd2(t *testing.T) {
 		r.print("", r.routeMap["GET"])
 		fmt.Println(".")
 
-		r.add("GET", "/a/:name", []HandlerFunc{f})
+		r.add("GET", "/a/:ibb", []HandlerFunc{f})
 		r.print("", r.routeMap["GET"])
 		fmt.Println(".")
 
@@ -70,7 +71,7 @@ func TestRouteAdd2(t *testing.T) {
 		r.print("", r.routeMap["GET"])
 		fmt.Println(".")
 
-		r.add("GET", "/a/:name/name", []HandlerFunc{f})
+		r.add("GET", "/a/:ibb/name", []HandlerFunc{f})
 		r.print("", r.routeMap["GET"])
 		fmt.Println(".")
 
@@ -86,5 +87,31 @@ func TestRouteAdd2(t *testing.T) {
 		r.print("", r.routeMap["GET"])
 		fmt.Println(".")
 
+		r.add("GET", "/ab/:name", []HandlerFunc{f})
+		r.print("", r.routeMap["GET"])
+		fmt.Println(".")
+
+	})
+}
+func TestRouteMatch2(t *testing.T) {
+	Convey("测试参数路由获取", t, func() {
+		r.print("", r.routeMap["GET"])
+		fmt.Println(".")
+
+		ru := r.Match("GET", "/", c)
+		fmt.Printf("%#v\n", ru)
+		fmt.Println(".")
+
+		ru = r.Match("GET", "/a/123/id", c)
+		fmt.Printf("%#v\n", ru)
+		fmt.Println(".")
+
+		ru = r.Match("GET", "/a/123/name", c)
+		fmt.Printf("%#v\n", ru)
+		fmt.Println(".")
+
+		ru = r.Match("GET", "/a/yst/file/a.jpg", c)
+		fmt.Printf("%#v\n", ru)
+		fmt.Println(".")
 	})
 }

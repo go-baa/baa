@@ -2,6 +2,7 @@ package baa
 
 import (
 	"net/http"
+	"strconv"
 )
 
 // Context provlider a HTTP context for baa
@@ -30,9 +31,32 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request, b *Baa) {
 	c.params = make(map[string]string)
 }
 
+// SetParam read route param value from uri
+func (c *Context) SetParam(key, value string) {
+	c.params[key] = value
+}
+
 // Param get route param from context
 func (c *Context) Param(name string) string {
 	return c.params[name]
+}
+
+// ParamInt get route param from context and format to int
+func (c *Context) ParamInt(name string) int {
+	i, _ := strconv.Atoi(c.params[name])
+	return i
+}
+
+// ParamFloat get route param from context and format to float64
+func (c *Context) ParamFloat(name string) float64 {
+	f, _ := strconv.ParseFloat(c.params[name], 64)
+	return f
+}
+
+// ParamBool get route param from context and format to bool
+func (c *Context) ParamBool(name string) bool {
+	b, _ := strconv.ParseBool(c.params[name])
+	return b
 }
 
 // Query get a param from http.Request.Form
