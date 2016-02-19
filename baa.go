@@ -80,7 +80,7 @@ func New() *Baa {
 	}
 	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDIer(NewDI())
-	b.SetRouter(NewRouter(b))
+	b.SetRouter(NewRouter())
 	return b
 }
 
