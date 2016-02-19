@@ -90,8 +90,10 @@ func Classic() *Baa {
 func New() *Baa {
 	b := new(Baa)
 	b.middleware = make([]HandlerFunc, 0)
-	b.pool.New = func() interface{} {
-		return NewContext(nil, nil, b)
+	b.pool = sync.Pool{
+		New: func() interface{} {
+			return NewContext(nil, nil, b)
+		},
 	}
 	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDIer(NewDI())
