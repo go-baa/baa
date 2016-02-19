@@ -91,6 +91,10 @@ func TestRouteAdd2(t *testing.T) {
 		r.print("", r.routeMap["GET"])
 		fmt.Println(".")
 
+		r.add("GET", "/applications/:client_id/tokens/:access_token", []HandlerFunc{f})
+		r.print("", r.routeMap["GET"])
+		fmt.Println(".")
+
 	})
 }
 func TestRouteMatch2(t *testing.T) {
@@ -111,6 +115,10 @@ func TestRouteMatch2(t *testing.T) {
 		fmt.Println(".")
 
 		ru = r.Match("GET", "/a/yst/file/a.jpg", c)
+		fmt.Printf("%#v\n", ru)
+		fmt.Println(".")
+
+		ru = r.Match("GET", "/applications/123/tokens/a8sadkfas87jas", c)
 		fmt.Printf("%#v\n", ru)
 		fmt.Println(".")
 	})

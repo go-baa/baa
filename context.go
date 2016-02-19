@@ -12,6 +12,8 @@ type Context struct {
 	Resp   http.ResponseWriter
 	Data   map[string]interface{}
 	baa    *Baa
+	mi     int           // middleware order
+	mw     []HandlerFunc //middleware
 	params map[string]string
 }
 
@@ -24,11 +26,13 @@ func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 
 // reset ...
 func (c *Context) reset(w http.ResponseWriter, r *http.Request, b *Baa) {
-	c.Req = r
 	c.Resp = w
+	c.Req = r
 	c.baa = b
 	c.Data = make(map[string]interface{})
 	c.params = make(map[string]string)
+	c.mw = make([]HandlerFunc, 0, MiddlewareMaxSize)
+	c.mi = 0
 }
 
 // SetParam read route param value from uri
@@ -147,4 +151,15 @@ func (c *Context) Error(err error) {
 // Baa ...
 func (c *Context) Baa() *Baa {
 	return c.baa
+}
+
+// Next execute next middleware
+func (c *Context) Next() {
+	f := c.mw[c.mi]
+	c.mi++
+	if f != nil {
+		if err := f(c); err != nil {
+			c.baa.httpErrorHandler(err, c)
+		}
+	}
 }

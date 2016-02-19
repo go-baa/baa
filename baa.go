@@ -18,8 +18,18 @@ import (
 )
 
 const (
-	DEV  = "development"
+	// MiddlewareMaxSize set size limit of middleware
+	MiddlewareMaxSize = 20
+	// RouteMaxLength set length limit of route pattern
+	RouteMaxLength = 256
+	// RouterParamMaxLength set length limit of route pattern param
+	RouterParamMaxLength = 64
+
+	// DEV mode
+	DEV = "development"
+	// PROD mode
 	PROD = "production"
+	// TEST mode
 	TEST = "test"
 )
 
@@ -30,14 +40,11 @@ type Baa struct {
 	logger           Logger
 	debug            bool
 	httpErrorHandler HTTPErrorHandler
-	middleware       []MiddlewareFunc
+	middleware       []HandlerFunc
 	di               *DI
 	pool             sync.Pool
 	render           Renderer
 }
-
-// MiddlewareFunc ...
-type MiddlewareFunc func(HandlerFunc) HandlerFunc
 
 // HandlerFunc context handler
 type HandlerFunc func(*Context) error
@@ -74,7 +81,7 @@ func Classic() *Baa {
 // New create a baa application without any config.
 func New() *Baa {
 	b := new(Baa)
-	b.middleware = make([]MiddlewareFunc, 0)
+	b.middleware = make([]HandlerFunc, 0)
 	b.pool.New = func() interface{} {
 		return NewContext(nil, nil, nil)
 	}
@@ -143,15 +150,10 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h = route.handle
 	}
 
-	// Chain middleware with handler in the end
-	for i := len(b.middleware) - 1; i >= 0; i-- {
-		h = b.middleware[i](h)
-	}
-
-	// Execute chain
-	if err := h(c); err != nil {
-		b.httpErrorHandler(err, c)
-	}
+	// concat middleware handle and route handle to a list
+	c.mw = append(c.mw, b.middleware...)
+	c.mw = append(c.mw, h)
+	c.Next()
 }
 
 // SetDebug set baa debug
@@ -204,7 +206,11 @@ func (b *Baa) DefaultHTTPErrorHandler(err error, c *Context) {
 }
 
 // Use registers a middleware
-func (b *Baa) Use(m MiddlewareFunc) {
+func (b *Baa) Use(m HandlerFunc) {
+	if len(b.middleware) > MiddlewareMaxSize {
+		b.logger.Printf("middleware num overhead, limit %d\n", MiddlewareMaxSize)
+		return
+	}
 	b.middleware = append(b.middleware, m)
 }
 

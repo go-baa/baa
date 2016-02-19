@@ -17,13 +17,7 @@ var METHODS = map[string]bool{
 	"HEAD":    true,
 }
 
-const (
-	// RouteMaxLength set length limit of route pattern
-	RouteMaxLength = 256
-	// RouterParamMaxLength set length limit of route pattern param
-	RouterParamMaxLength = 64
-)
-
+// optimize ...
 var _radix [RouteMaxLength]byte
 var _param [RouterParamMaxLength]byte
 
@@ -259,7 +253,6 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 }
 
 func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
-	fmt.Printf("-> pattern: %s, route: %s\n", pattern, root.pattern)
 	var ru *Route
 	// static route
 	if !root.hasParam {
@@ -282,13 +275,11 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 				}
 			}
 		}
-		fmt.Printf("--> count %d, pcount %d, param: %s, value: %s\n", i, len(pattern), root.pattern[1:], pattern[:i])
 		c.SetParam(root.pattern[1:], pattern[:i])
 		if i == len(pattern) {
 			if root.handlers != nil {
 				return root
 			}
-			fmt.Printf("--> route: %s no handlers\n", root.pattern)
 			return nil
 		}
 		pattern = pattern[i:]
@@ -367,7 +358,7 @@ func (r *Route) reset(ru *Route) {
 
 // isParamChar check the char can used for route params
 func isParamChar(c byte) bool {
-	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) {
+	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95 {
 		return true
 	}
 	return false
