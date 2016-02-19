@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// METHODS 定义支持的HTTP method
+// METHODS declare support HTTP method
 var METHODS = map[string]bool{
 	"GET":     true,
 	"POST":    true,
