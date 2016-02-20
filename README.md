@@ -13,15 +13,17 @@ a fast &amp; simple Go web framework, routing, middleware, dependency injection,
 * dependency injection support
 * context support JSON/JSONP/XML/HTML reponse
 * Centralized HTTP error handling
+* Custom log handler (use baa.Logger interface)
 
 ## Performance
 
 ## Middleware
 
-* logger
-* recovery
-* session
-* render
+* [logger](https://github.com/baa-middleware/logger)
+* [recovery](https://github.com/baa-middleware/recovery)
+* [session](https://github.com/baa-middleware/session)
+* [render](https://github.com/baa-middleware/render)
+* [gzip](https://github.com/baa-middleware/gzip)
 
 
 ## TODO
@@ -40,6 +42,26 @@ $ go get github.com/go-baa/baa
 ```
 
 # Quick Start
+
+classic
+
+```
+package main
+
+import (
+    "github.com/go-baa/baa"
+)
+
+func main() {
+    app := baa.Classic()
+    app.Get("/", func(c *baa.Context) {
+        c.String(200, "Hello World!")
+    })
+    app.Run(":1323")
+}
+```
+
+use middleware
 
 ```
 package main
