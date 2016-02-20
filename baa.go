@@ -26,12 +26,10 @@ import (
 )
 
 const (
-	// MiddlewareMaxSize set size limit of middleware
-	MiddlewareMaxSize = 20
 	// RouteMaxLength set length limit of route pattern
 	RouteMaxLength = 256
 	// RouterParamMaxLength set length limit of route pattern param
-	RouterParamMaxLength = 64
+	RouterParamMaxLength = 32
 
 	// DEV mode
 	DEV = "development"
@@ -96,8 +94,8 @@ func New() *Baa {
 		},
 	}
 	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
-	b.SetDIer(NewDI())
-	b.SetRouter(NewRouter())
+	b.SetDIer(newDI())
+	b.SetRouter(newRouter())
 	return b
 }
 
@@ -146,10 +144,10 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.reset(w, r)
 
 	var h HandlerFunc
-	route := b.router.Match(r.Method, r.URL.Path, c)
+	route := b.router.match(r.Method, r.URL.Path, c)
 	if route == nil {
 		// notFound
-		h = b.router.GetNotFoundHandler()
+		h = b.router.getNotFoundHandler()
 		if h == nil {
 			h = func(c *Context) {
 				http.NotFound(c.Resp, c.Req)
@@ -195,6 +193,16 @@ func (b *Baa) SetRouter(r *Router) {
 	b.router = r
 }
 
+// Error ...
+func (b *Baa) Error(err error, c *Context) {
+	if b.errorHandler != nil {
+		b.errorHandler(err, c)
+		return
+	}
+	http.Error(c.Resp, err.Error(), 500)
+	b.logger.Println("Error " + err.Error())
+}
+
 // SetErrorHandler registers a custom Baa.ErrorHandleFunc.
 func (b *Baa) SetErrorHandler(h ErrorHandleFunc) {
 	b.errorHandler = h
@@ -216,21 +224,31 @@ func (b *Baa) DefaultErrorHandler(err error, c *Context) {
 
 // Use registers a middleware
 func (b *Baa) Use(m HandlerFunc) {
-	if len(b.middleware) > MiddlewareMaxSize {
-		b.logger.Printf("middleware num overhead, limit %d\n", MiddlewareMaxSize)
-		return
-	}
 	b.middleware = append(b.middleware, m)
 }
 
 // SetDI registers a dependency injection
 func (b *Baa) SetDI(name string, h interface{}) {
-	b.di.Set(name, h)
+	b.di.set(name, h)
 }
 
 // GetDI fetch a registered dependency injection
 func (b *Baa) GetDI(name string) interface{} {
-	return b.di.Get(name)
+	return b.di.get(name)
+}
+
+// Static set static file route
+// h used for set Expries ...
+func (b *Baa) Static(prefix string, dir string, index bool, h HandlerFunc) {
+	if prefix == "" {
+		panic("baa.Static prefix can not be empty")
+	}
+	if dir == "" {
+		panic("baa.Static dir can not be empty")
+	}
+	staticHandler := newStatic(prefix, dir, index, h)
+	b.Get(prefix, staticHandler)
+	b.Get(prefix+":file", staticHandler)
 }
 
 // SetAutoHead sets the value who determines whether add HEAD method automatically
@@ -244,16 +262,16 @@ func (b *Baa) SetAutoHead(v bool) {
 // Example:
 // 		baa.route("/", "GET,POST", h)
 func (b *Baa) Route(pattern, methods string, h ...HandlerFunc) *Route {
-	var rs *Route
+	var ru *Route
 	for _, m := range strings.Split(methods, ",") {
-		rs = b.router.add(strings.TrimSpace(m), pattern, h)
+		ru = b.router.add(strings.TrimSpace(m), pattern, h)
 	}
-	return rs
+	return ru
 }
 
 // Group registers a list of same prefix route
-func (b *Baa) Group(pattern string, fn func(), h ...HandlerFunc) {
-
+func (b *Baa) Group(pattern string, f func(), h ...HandlerFunc) {
+	b.router.groupAdd(pattern, f, h)
 }
 
 // Get is a shortcut for b.router.handle("GET", pattern, handlers)
@@ -297,12 +315,16 @@ func (b *Baa) Head(pattern string, h ...HandlerFunc) *Route {
 
 // Any is a shortcut for b.router.handle("*", pattern, handlers)
 func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
-	return b.router.add("*", pattern, h)
+	var ru *Route
+	for m := range METHODS {
+		ru = b.router.add(m, pattern, h)
+	}
+	return ru
 }
 
-// NotFound set 404 router
+// NotFound set 404 router handler
 func (b *Baa) NotFound(h HandlerFunc) {
-	b.router.NotFound(h)
+	b.router.setNotFoundHandler(h)
 }
 
 // URLFor use named route return format url

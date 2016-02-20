@@ -32,7 +32,7 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.Req = r
 	c.Data = make(map[string]interface{})
 	c.params = make(map[string]string)
-	c.mw = make([]HandlerFunc, 0, MiddlewareMaxSize)
+	c.mw = c.mw[:0]
 	c.mi = 0
 }
 
@@ -151,7 +151,7 @@ func (c *Context) Redirect(code int, url string) error {
 
 // Error invokes the registered HTTP error handler. Generally used by middleware.
 func (c *Context) Error(err error) {
-	c.baa.errorHandler(err, c)
+	c.baa.Error(err, c)
 }
 
 // Baa ...
@@ -160,7 +160,11 @@ func (c *Context) Baa() *Baa {
 }
 
 // Next execute next middleware
+// if something wrote to http, break chain and return
 func (c *Context) Next() {
+	if c.Resp.Wrote() {
+		return
+	}
 	f := c.mw[c.mi]
 	c.mi++
 	if f != nil {

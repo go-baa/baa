@@ -2,6 +2,7 @@ package baa
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 )
@@ -28,6 +29,7 @@ type Router struct {
 	notFoundHandler HandlerFunc
 	routeMap        map[string]*Route
 	routeNamedMap   map[string]string
+	group           *Group
 }
 
 // Route is a tree node
@@ -41,14 +43,22 @@ type Route struct {
 	handlers []HandlerFunc
 }
 
-// NewRouter create a router instance
-func NewRouter() *Router {
+// Group route
+type Group struct {
+	pattern  string
+	handlers []HandlerFunc
+	mu       sync.RWMutex
+}
+
+// newRouter create a router instance
+func newRouter() *Router {
 	r := new(Router)
 	r.routeMap = make(map[string]*Route)
 	for m := range METHODS {
 		r.routeMap[m] = newRoute("/", nil, nil)
 	}
 	r.routeNamedMap = make(map[string]string)
+	r.group = newGroup()
 	return r
 }
 
@@ -62,21 +72,32 @@ func newRoute(pattern string, handles []HandlerFunc, router *Router) *Route {
 	return r
 }
 
-// NotFound set the route not match result.
+// newGroup create a group router
+func newGroup() *Group {
+	g := new(Group)
+	g.handlers = make([]HandlerFunc, 0)
+	return g
+}
+
+// setNotFoundHandler set the route not match result.
 // Configurable http.HandlerFunc which is called when no matching route is
 // found. If it is not set, http.NotFound is used.
 // Be sure to set 404 response code in your handler.
-func (r *Router) NotFound(h HandlerFunc) {
+func (r *Router) setNotFoundHandler(h HandlerFunc) {
 	r.notFoundHandler = h
 }
 
-// GetNotFoundHandler ...
-func (r *Router) GetNotFoundHandler() HandlerFunc {
-	return r.notFoundHandler
+// NotFound execute 404 handler
+func (r *Router) NotFound(c *Context) {
+	if r.notFoundHandler != nil {
+		r.notFoundHandler(c)
+		return
+	}
+	http.NotFound(c.Resp, c.Req)
 }
 
 // Match match the uri for handler
-func (r *Router) Match(method, uri string, c *Context) *Route {
+func (r *Router) match(method, uri string, c *Context) *Route {
 	ru := r.lookup(uri, r.routeMap[method], c)
 	if ru != nil && ru.handlers != nil {
 		return ru
@@ -96,8 +117,24 @@ func (r *Router) URLFor(name string, args ...interface{}) string {
 	return fmt.Sprintf(url, args...)
 }
 
+// groupAdd add a group route has same prefix and handle chain
+func (r *Router) groupAdd(pattern string, f func(), handlers []HandlerFunc) {
+	r.group.mu.Lock()
+	defer r.group.mu.Unlock()
+
+	r.group.pattern = pattern
+	r.group.handlers = handlers
+
+	f()
+
+	r.group.reset()
+}
+
 // Handle registers a new request handle with the given pattern, method and handlers.
 func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Route {
+	if _, ok := METHODS[method]; !ok {
+		panic("unsupport http method [" + method + "]")
+	}
 	if pattern == "" {
 		panic("route pattern can not be emtpy!")
 	}
@@ -107,11 +144,19 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	if len(pattern) > RouteMaxLength {
 		panic(fmt.Sprintf("route pattern max length limit %d", RouteMaxLength))
 	}
-	if _, ok := METHODS[method]; !ok {
-		panic("unsupport http method [" + method + "]")
-	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// check group set, not concurrent safe
+	if r.group.pattern != "" {
+		pattern = r.group.pattern + pattern
+		if len(r.group.handlers) > 0 {
+			h := make([]HandlerFunc, 0, len(r.group.handlers)+len(handlers))
+			h = append(h, r.group.handlers...)
+			h = append(h, handlers...)
+			handlers = h
+		}
+	}
 
 	root := r.routeMap[method]
 	radix := _radix[0:]
@@ -314,6 +359,12 @@ func (r *Router) print(prefix string, root *Route) {
 	}
 }
 
+// reset group data for next group set
+func (g *Group) reset() {
+	g.pattern = ""
+	g.handlers = g.handlers[:0]
+}
+
 // Name set name of route
 func (r *Route) Name(name string) {
 	if name == "" {
@@ -338,7 +389,7 @@ func (r *Route) Name(name string) {
 }
 
 // handle route hadnle chain
-// if something wrote, break chian and return
+// if something wrote to http, break chain and return
 func (r *Route) handle(c *Context) {
 	for _, h := range r.handlers {
 		h(c)
