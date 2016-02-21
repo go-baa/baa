@@ -41,15 +41,16 @@ const (
 
 // Baa provlider an application
 type Baa struct {
-	debug        bool
-	name         string
-	di           *DI
-	router       *Router
-	logger       Logger
-	render       Renderer
-	pool         sync.Pool
-	errorHandler ErrorHandleFunc
-	middleware   []HandlerFunc
+	debug           bool
+	name            string
+	di              *DI
+	router          *Router
+	logger          Logger
+	render          Renderer
+	pool            sync.Pool
+	errorHandler    ErrorHandleFunc
+	notFoundHandler HandlerFunc
+	middleware      []HandlerFunc
 }
 
 // HandlerFunc context handler
@@ -90,7 +91,7 @@ func New() *Baa {
 	b.middleware = make([]HandlerFunc, 0)
 	b.pool = sync.Pool{
 		New: func() interface{} {
-			return NewContext(nil, nil, b)
+			return newContext(nil, nil, b)
 		},
 	}
 	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
@@ -147,7 +148,7 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	route := b.router.match(r.Method, r.URL.Path, c)
 	if route == nil {
 		// notFound
-		h = b.router.getNotFoundHandler()
+		h = b.notFoundHandler
 		if h == nil {
 			h = func(c *Context) {
 				http.NotFound(c.Resp, c.Req)
@@ -191,16 +192,6 @@ func (b *Baa) SetRender(r Renderer) {
 // SetRouter registers a Baa.Router
 func (b *Baa) SetRouter(r *Router) {
 	b.router = r
-}
-
-// Error ...
-func (b *Baa) Error(err error, c *Context) {
-	if b.errorHandler != nil {
-		b.errorHandler(err, c)
-		return
-	}
-	http.Error(c.Resp, err.Error(), 500)
-	b.logger.Println("Error " + err.Error())
 }
 
 // SetErrorHandler registers a custom Baa.ErrorHandleFunc.
@@ -322,9 +313,31 @@ func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
 	return ru
 }
 
-// NotFound set 404 router handler
-func (b *Baa) NotFound(h HandlerFunc) {
-	b.router.setNotFoundHandler(h)
+// Error ...
+func (b *Baa) Error(err error, c *Context) {
+	if b.errorHandler != nil {
+		b.errorHandler(err, c)
+		return
+	}
+	http.Error(c.Resp, err.Error(), 500)
+	b.logger.Println("Error " + err.Error())
+}
+
+// setNotFoundHandler set the route not match result.
+// Configurable http.HandlerFunc which is called when no matching route is
+// found. If it is not set, http.NotFound is used.
+// Be sure to set 404 response code in your handler.
+func (b *Baa) setNotFoundHandler(h HandlerFunc) {
+	b.notFoundHandler = h
+}
+
+// NotFound execute 404 handler
+func (b *Baa) NotFound(c *Context) {
+	if b.notFoundHandler != nil {
+		b.notFoundHandler(c)
+		return
+	}
+	http.NotFound(c.Resp, c.Req)
 }
 
 // URLFor use named route return format url

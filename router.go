@@ -2,7 +2,6 @@ package baa
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 )
@@ -79,23 +78,6 @@ func newGroup() *Group {
 	return g
 }
 
-// setNotFoundHandler set the route not match result.
-// Configurable http.HandlerFunc which is called when no matching route is
-// found. If it is not set, http.NotFound is used.
-// Be sure to set 404 response code in your handler.
-func (r *Router) setNotFoundHandler(h HandlerFunc) {
-	r.notFoundHandler = h
-}
-
-// NotFound execute 404 handler
-func (r *Router) NotFound(c *Context) {
-	if r.notFoundHandler != nil {
-		r.notFoundHandler(c)
-		return
-	}
-	http.NotFound(c.Resp, c.Req)
-}
-
 // Match match the uri for handler
 func (r *Router) match(method, uri string, c *Context) *Route {
 	ru := r.lookup(uri, r.routeMap[method], c)
@@ -154,7 +136,7 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			h := make([]HandlerFunc, 0, len(r.group.handlers)+len(handlers))
 			h = append(h, r.group.handlers...)
 			h = append(h, handlers...)
-			handlers = h
+			handlers = h[:]
 		}
 	}
 
@@ -239,34 +221,40 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 	// find radix
 	var i, l int
 	l = len(root.pattern)
-	if root.pattern[0] == ':' && ru.pattern[0] == ':' {
-
-	} else {
-		for i = 0; i < len(ru.pattern); i++ {
-			// param route can not split
-			if i >= l || ru.pattern[i] != root.pattern[i] {
-				break
-			}
+	for i = 0; i < len(ru.pattern); i++ {
+		// param route can not split
+		if i == l || ru.pattern[i] != root.pattern[i] {
+			break
 		}
 	}
-	if i > 0 && i < l {
-		// has radix, and not child, reset root
-		var newRu *Route
-		if i <= l {
-			newRu = newRoute(ru.pattern[:i], ru.handlers, r)
-			ru = newRu
-		} else {
-			newRu = newRoute(ru.pattern[:i], nil, nil)
-			ru.pattern = ru.pattern[i:]
-			ru.parent = newRu
-			newRu.children[ru.pattern] = ru
+	// i = 0, panic!, ru must be a child of root or has prefix with root
+	// i = l, ru is a child of root
+	// i < l and i == len(ru.pattern), root is a child of ru
+	// i < l, ru has prefix with root
+	if i < l {
+		if i == len(ru.pattern) {
+			ru.parent = root.parent
+			ru.children[root.pattern[i:]] = &Route{
+				pattern:  root.pattern[i:],
+				handlers: root.handlers,
+				children: root.children,
+				router:   r,
+				parent:   root,
+			}
+			root.reset(ru)
+			return root
 		}
+
+		newRu := newRoute(ru.pattern[:i], nil, nil)
+		ru.pattern = ru.pattern[i:]
+		ru.parent = newRu
+		newRu.children[ru.pattern] = ru
 		newRu.children[root.pattern[i:]] = &Route{
 			pattern:  root.pattern[i:],
 			handlers: root.handlers,
 			children: root.children,
 			router:   r,
-			parent:   newRu,
+			parent:   root,
 		}
 		root.reset(newRu)
 		return ru

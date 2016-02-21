@@ -17,8 +17,8 @@ type Context struct {
 	mi     int           // middleware order
 }
 
-// NewContext create a http context
-func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
+// newContext create a http context
+func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
 	c.Resp = NewResponse(w, b)
 	c.baa = b

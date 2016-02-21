@@ -7,8 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var r = NewRouter()
-var c = NewContext(nil, nil, nil)
+var r = newRouter()
+var c = newContext(nil, nil, nil)
 var f = func(c *Context) {}
 
 func TestRouteAdd1(t *testing.T) {
@@ -92,24 +92,51 @@ func TestRouteAdd2(t *testing.T) {
 
 	})
 }
-func TestRouteMatch2(t *testing.T) {
+
+func TestRouteAdd3(t *testing.T) {
+	Convey("测试组路由添加", t, func() {
+		app := New()
+		app.SetRouter(r)
+		app.Group("/user", func() {
+			app.Get("/info", f)
+			app.Get("/info2", f)
+		})
+		app.Group("/user", func() {
+			app.Get("/pass", f)
+			app.Get("/pass2", f)
+		})
+		r.print("", r.routeMap["GET"])
+		fmt.Println(".")
+	})
+}
+
+func TestRoutematch2(t *testing.T) {
 	Convey("测试参数路由获取", t, func() {
-		ru := r.Match("GET", "/", c)
+		ru := r.match("GET", "/", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/a/123/id", c)
+		ru = r.match("GET", "/a/123/id", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/a/123/name", c)
+		ru = r.match("GET", "/a/123/name", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/a/yst/file/a.jpg", c)
+		ru = r.match("GET", "/a/yst/file/a.jpg", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/applications/123/tokens/a8sadkfas87jas", c)
+		ru = r.match("GET", "/applications/123/tokens/a8sadkfas87jas", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/xxxx", c)
+		ru = r.match("GET", "/user/info", c)
+		So(ru, ShouldNotBeNil)
+
+		ru = r.match("GET", "/user/pass", c)
+		So(ru, ShouldNotBeNil)
+
+		ru = r.match("GET", "/user/xxx", c)
+		So(ru, ShouldBeNil)
+
+		ru = r.match("GET", "/xxxx", c)
 		So(ru, ShouldBeNil)
 	})
 }
