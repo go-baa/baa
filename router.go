@@ -234,7 +234,9 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 	var ok bool
 	if !root.hasParam && ru.hasParam {
 		if _, ok = root.children[ru.pattern]; ok {
-			root.children[ru.pattern].handlers = ru.handlers
+			if ru.handlers != nil {
+				root.children[ru.pattern].handlers = ru.handlers
+			}
 		} else {
 			ru.parent = root
 			root.children[ru.pattern] = ru
