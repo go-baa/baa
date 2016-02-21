@@ -43,17 +43,19 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 		}
 
 		// directory index
-		if s.index {
-			if f, err := os.Stat(file); err == nil {
-				if f.IsDir() {
+		if f, err := os.Stat(file); err == nil {
+			if f.IsDir() {
+				if s.index {
 					// if no end slash, add slah and redriect
 					if c.Req.URL.Path[len(c.Req.URL.Path)-1] != '/' {
 						c.Redirect(302, c.Req.URL.Path+"/")
 						return
 					}
 					listDir(file, s, c)
-					return
+				} else {
+					c.Resp.WriteHeader(http.StatusForbidden)
 				}
+				return
 			}
 		}
 
