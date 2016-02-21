@@ -203,10 +203,6 @@ func (b *Baa) SetErrorHandler(h ErrorHandleFunc) {
 func (b *Baa) DefaultErrorHandler(err error, c *Context) {
 	code := http.StatusInternalServerError
 	msg := http.StatusText(code)
-	if he, ok := err.(*HTTPError); ok {
-		code = he.code
-		msg = he.message
-	}
 	if b.debug {
 		msg = err.Error()
 	}
@@ -343,29 +339,4 @@ func (b *Baa) NotFound(c *Context) {
 // URLFor use named route return format url
 func (b *Baa) URLFor(name string, args ...interface{}) string {
 	return b.router.URLFor(name, args...)
-}
-
-// NewHTTPError creates a new HTTPError instance.
-func NewHTTPError(code int, msg ...string) *HTTPError {
-	e := &HTTPError{code: code, message: http.StatusText(code)}
-	if len(msg) > 0 {
-		m := msg[0]
-		e.message = m
-	}
-	return e
-}
-
-// SetCode sets code.
-func (e *HTTPError) SetCode(code int) {
-	e.code = code
-}
-
-// Code returns code.
-func (e *HTTPError) Code() int {
-	return e.code
-}
-
-// Error returns message.
-func (e *HTTPError) Error() string {
-	return e.message
 }

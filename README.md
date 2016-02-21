@@ -6,14 +6,14 @@ a fast &amp; simple Go web framework, routing, middleware, dependency injection,
 
 * no reflect
 * no regexp
-* route support static and param
-* route support handle chain
+* route support static, param, group
+* route support handler chain
 * route support static file serve
 * middleware supoort handle chain
 * dependency injection support
 * context support JSON/JSONP/XML/HTML reponse
 * Centralized HTTP error handling
-* Custom log handler (use baa.Logger interface)
+* Centralized log handling (use baa.Logger interface)
 
 ## Performance
 
@@ -28,8 +28,6 @@ a fast &amp; simple Go web framework, routing, middleware, dependency injection,
 
 ## TODO
 
-* group router
-* static file serve
 * context json/jsonp/xml support
 * context cookie
 * render and template
