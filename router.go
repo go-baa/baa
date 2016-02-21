@@ -311,7 +311,8 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 			i = len(pattern)
 		} else {
 			for i = 0; i < len(pattern); i++ {
-				if !isParamChar(pattern[i]) {
+				// find allow pattern contains :
+				if !isParamChar(pattern[i]) && pattern[i] != ':' {
 					break
 				}
 			}
