@@ -30,6 +30,7 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 		prefix:  prefix,
 		handler: h,
 	}
+
 	return func(c *Context) {
 		file := c.Param("file")
 		if len(file) > 0 && file[0] == '/' {

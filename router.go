@@ -136,32 +136,31 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			h := make([]HandlerFunc, 0, len(r.group.handlers)+len(handlers))
 			h = append(h, r.group.handlers...)
 			h = append(h, handlers...)
-			handlers = h[:]
+			handlers = h
 		}
 	}
 
 	root := r.routeMap[method]
-	radix := _radix[0:]
-	var j int
-	var k int
+	radix := _radix[:0]
+	var i, k int
 	var tru *Route
-	for i := 0; i < len(pattern); i++ {
+	for i = 0; i < len(pattern); i++ {
 		//param route
 		if pattern[i] == ':' {
 			// clear static route
-			if j > 0 {
-				root = r.insert(root, newRoute(string(radix[:j]), nil, nil))
-				j = 0
+			if len(radix) > 0 {
+				root = r.insert(root, newRoute(string(radix), nil, nil))
+				radix = _radix[:0]
 			}
 			// set param route
-			param := _param[0:]
+			param := _param[:0]
 			k = 0
 			for i = i + 1; i < len(pattern); i++ {
 				if !isParamChar(pattern[i]) {
 					i--
 					break
 				}
-				param[k] = pattern[i]
+				param = append(param, pattern[i])
 				k++
 			}
 			if k == 0 {
@@ -181,107 +180,116 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			root = r.insert(root, tru)
 			continue
 		}
-		radix[j] = pattern[i]
-		j++
+		radix = append(radix, pattern[i])
 	}
 
 	// static route
-	if j > 0 {
-		tru = newRoute(string(radix[:j]), handlers, r)
+	if len(radix) > 0 {
+		tru = newRoute(string(radix), handlers, r)
 		r.insert(root, tru)
 	}
 
 	return newRoute(pattern, handlers, r)
 }
 
+// insert build the route tree
 func (r *Router) insert(root *Route, ru *Route) *Route {
-	// same route reset root
+	// same route
 	if root.pattern == ru.pattern {
 		if ru.handlers != nil {
-			ru.children = root.children
-			root.reset(ru)
+			root.handlers = ru.handlers
 		}
 		return root
 	}
 
 	// param route
-	if root.hasParam {
-		if ru.hasParam {
-			if parent := root.parent; parent != nil {
-				ru.parent = parent
-				parent.children[ru.pattern] = ru
+	if root.hasParam && ru.hasParam {
+		if root.parent == nil {
+			panic("Router.insert error route has no parent")
+		}
+		ru.parent = root.parent
+		root.parent.children[ru.pattern] = ru
+		return ru
+	}
+
+	var k string
+	if root.hasParam && !ru.hasParam {
+		for k = range root.children {
+			if root.children[k].pattern == ru.pattern {
+				if ru.handlers != nil {
+					root.children[k].handlers = ru.handlers
+				}
+				return root.children[k]
 			}
+			if hasPrefix(root.children[k].pattern, ru.pattern) > 0 {
+				return r.insert(root.children[k], ru)
+			}
+		}
+
+		ru.parent = root
+		root.children[ru.pattern] = ru
+		return ru
+	}
+
+	var ok bool
+	if !root.hasParam && ru.hasParam {
+		if _, ok = root.children[ru.pattern]; ok {
+			root.children[ru.pattern].handlers = ru.handlers
 		} else {
 			ru.parent = root
 			root.children[ru.pattern] = ru
 		}
-		return ru
+		return root.children[ru.pattern]
 	}
 
 	// find radix
-	var i, l int
-	l = len(root.pattern)
-	for i = 0; i < len(ru.pattern); i++ {
-		// param route can not split
-		if i == l || ru.pattern[i] != root.pattern[i] {
-			break
-		}
+	pos := hasPrefix(root.pattern, ru.pattern)
+	if pos == 0 {
+		panic("Router.insert error root[" + root.pattern + "] and node[" + ru.pattern + "] not have both prefix")
 	}
-	// i = 0, panic!, ru must be a child of root or has prefix with root
-	// i = l, ru is a child of root
-	// i < l and i == len(ru.pattern), root is a child of ru
-	// i < l, ru has prefix with root
-	if i < l {
-		if i == len(ru.pattern) {
-			ru.parent = root.parent
-			ru.children[root.pattern[i:]] = &Route{
-				pattern:  root.pattern[i:],
-				handlers: root.handlers,
-				children: root.children,
-				router:   r,
-				parent:   root,
-			}
-			root.reset(ru)
-			return root
-		}
-
-		newRu := newRoute(ru.pattern[:i], nil, nil)
-		ru.pattern = ru.pattern[i:]
-		ru.parent = newRu
-		newRu.children[ru.pattern] = ru
-		newRu.children[root.pattern[i:]] = &Route{
-			pattern:  root.pattern[i:],
-			handlers: root.handlers,
-			children: root.children,
-			router:   r,
-			parent:   root,
-		}
-		root.reset(newRu)
+	if pos == len(ru.pattern) {
+		ru.parent = root.parent
+		ru.children[root.pattern] = root
+		delete(root.parent.children, root.pattern)
+		root.parent.children[ru.pattern] = ru
+		root.pattern = root.pattern[pos:]
+		root.parent = ru
 		return ru
 	}
 
-	// reset ru pattern wipe out radix
-	ru.pattern = ru.pattern[i:]
-
-	// has radix and ru is child, children is note empty, continue check children radix
-	i = 0
-	for j := range root.children {
-		l = len(root.children[j].pattern) - 1
-		for i = 0; i < len(ru.pattern); i++ {
-			if i > l || ru.pattern[i] != root.children[j].pattern[i] {
-				break
+	ru.pattern = ru.pattern[pos:]
+	if pos == len(root.pattern) {
+		for k = range root.children {
+			if root.children[k].pattern == ru.pattern {
+				if ru.handlers != nil {
+					root.children[k].handlers = ru.handlers
+				}
+				return root.children[k]
+			}
+			if hasPrefix(root.children[k].pattern, ru.pattern) > 0 {
+				return r.insert(root.children[k], ru)
 			}
 		}
-		if i > 0 {
-			ru = r.insert(root.children[j], ru)
-			break
-		}
-	}
-	// has radix and ru is child, children is note empty, but none children has radix with ru, let ru be a child
-	if i == 0 {
+
 		ru.parent = root
 		root.children[ru.pattern] = ru
+		return ru
 	}
+
+	delete(root.parent.children, root.pattern)
+	_root := newRoute(root.pattern[:pos], nil, r)
+	_root.parent = root.parent
+	ru.parent = _root
+	newRoot := &Route{
+		pattern:  root.pattern[pos:],
+		handlers: root.handlers,
+		children: root.children,
+		router:   r,
+		parent:   _root,
+	}
+	_root.children[newRoot.pattern] = newRoot
+	_root.children[ru.pattern] = ru
+	root.parent.children[_root.pattern] = _root
 	return ru
 }
 
@@ -324,9 +332,9 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 	// first, static route
 	for _, v := range root.children {
 		if ru = r.lookup(pattern, v, c); ru != nil {
-			//if ru.handlers != nil {
-			return ru
-			//}
+			if ru.handlers != nil {
+				return ru
+			}
 		}
 	}
 
@@ -340,6 +348,7 @@ func (r *Router) print(prefix string, root *Route) {
 			fmt.Println(m)
 			r.print("", r.routeMap[m])
 		}
+		return
 	}
 	fmt.Println(prefix + " -> " + root.pattern)
 	for i := range root.children {
@@ -387,18 +396,22 @@ func (r *Route) handle(c *Context) {
 	}
 }
 
-// reset route handle
-func (r *Route) reset(ru *Route) {
-	r.pattern = ru.pattern
-	r.children = ru.children
-	r.handlers = ru.handlers
-	r.router = ru.router
-}
-
 // isParamChar check the char can used for route params
 func isParamChar(c byte) bool {
 	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95 {
 		return true
 	}
 	return false
+}
+
+// hasPrefix returns the same prefix position
+func hasPrefix(s1, s2 string) int {
+	l := len(s1)
+	var i int
+	for i = 0; i < len(s2); i++ {
+		if i >= l || s2[i] != s1[i] {
+			break
+		}
+	}
+	return i
 }
