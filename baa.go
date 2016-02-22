@@ -26,11 +26,6 @@ import (
 )
 
 const (
-	// RouteMaxLength set length limit of route pattern
-	RouteMaxLength = 256
-	// RouterParamMaxLength set length limit of route pattern param
-	RouterParamMaxLength = 32
-
 	// DEV mode
 	DEV = "development"
 	// PROD mode

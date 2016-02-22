@@ -6,6 +6,13 @@ import (
 	"sync"
 )
 
+const (
+	// RouteMaxLength set length limit of route pattern
+	RouteMaxLength = 256
+	// RouterParamMaxLength set length limit of route pattern param
+	RouterParamMaxLength = 32
+)
+
 // METHODS declare support HTTP method
 var METHODS = map[string]bool{
 	"GET":     true,
@@ -282,13 +289,9 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 	_root := newRoute(root.pattern[:pos], nil, r)
 	_root.parent = root.parent
 	ru.parent = _root
-	newRoot := &Route{
-		pattern:  root.pattern[pos:],
-		handlers: root.handlers,
-		children: root.children,
-		router:   r,
-		parent:   _root,
-	}
+	newRoot := newRoute(root.pattern[pos:], root.handlers, r)
+	newRoot.children = root.children
+	newRoot.parent = _root
 	_root.children[newRoot.pattern] = newRoot
 	_root.children[ru.pattern] = ru
 	root.parent.children[_root.pattern] = _root
