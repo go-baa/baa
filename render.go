@@ -43,8 +43,8 @@ func parseFile(filename string) (*template.Template, error) {
 	return t, nil
 }
 
-// NewRender create a render instance
-func NewRender() *Render {
+// newRender create a render instance
+func newRender() *Render {
 	r := new(Render)
 	return r
 }

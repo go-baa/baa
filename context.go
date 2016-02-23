@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -12,6 +13,10 @@ import (
 )
 
 const (
+	// MaxMemory Maximum amount of memory to use when parsing a multipart form.
+	// Set this to whatever value you prefer; default is 10 MB.
+	MaxMemory = int64(1024 * 1024 * 10)
+
 	// Charset
 
 	CharsetUTF8 = "charset=utf-8"
@@ -92,13 +97,13 @@ func (c *Context) Get(key string) interface{} {
 }
 
 // Set saves data in the context.
-func (c *Context) Set(key string, val interface{}) {
-	c.store[key] = val
+func (c *Context) Set(key string, v interface{}) {
+	c.store[key] = v
 }
 
 // SetParam read route param value from uri
-func (c *Context) SetParam(key, value string) {
-	c.params[key] = value
+func (c *Context) SetParam(key, v string) {
+	c.params[key] = v
 }
 
 // Param get route param from context
@@ -274,8 +279,8 @@ func (c *Context) GetCookie(name string) string {
 	if err != nil {
 		return ""
 	}
-	val, _ := url.QueryUnescape(cookie.Value)
-	return val
+	v, _ := url.QueryUnescape(cookie.Value)
+	return v
 }
 
 // GetCookieInt returns cookie result in int type.
@@ -405,11 +410,8 @@ func (c *Context) Render(code int, tpl string) {
 
 // Fetch render data by html template engine use context.store and returns data
 func (c *Context) Fetch(tpl string) ([]byte, error) {
-	if c.baa.render == nil {
-		panic("render not registred!")
-	}
 	buf := new(bytes.Buffer)
-	if err := c.baa.render.Render(buf, tpl, c.store); err != nil {
+	if err := c.baa.Render().Render(buf, tpl, c.store); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -418,15 +420,11 @@ func (c *Context) Fetch(tpl string) ([]byte, error) {
 // Redirect redirects the request using http.Redirect with status code.
 func (c *Context) Redirect(code int, url string) error {
 	if code < http.StatusMultipleChoices || code > http.StatusTemporaryRedirect {
-		return ErrInvalidRedirectCode
+		return fmt.Errorf("invalid redirect status code")
 	}
 	http.Redirect(c.Resp, c.Req, url, code)
 	return nil
 }
-
-// MaxMemory Maximum amount of memory to use when parsing a multipart form.
-// Set this to whatever value you prefer; default is 10 MB.
-var MaxMemory = int64(1024 * 1024 * 10)
 
 // parseForm ...
 func (c *Context) parseForm() {

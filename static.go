@@ -9,7 +9,7 @@ import (
 )
 
 // Static provider static file serve for baa.
-type Static struct {
+type static struct {
 	handler HandlerFunc
 	prefix  string
 	dir     string
@@ -24,7 +24,7 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 	if len(dir) > 1 && dir[len(dir)-1] == '/' {
 		dir = dir[:len(dir)-1]
 	}
-	s := &Static{
+	s := &static{
 		dir:     dir,
 		index:   index,
 		prefix:  prefix,
@@ -64,7 +64,7 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 }
 
 // listDir list given dir files
-func listDir(dir string, s *Static, c *Context) {
+func listDir(dir string, s *static, c *Context) {
 	f, err := os.Open(dir)
 	if err != nil {
 		c.baa.Error(fmt.Errorf("baa.Static listDir Error: %s", err), c)

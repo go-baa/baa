@@ -8,13 +8,13 @@ import (
 
 const (
 	// RouteMaxLength set length limit of route pattern
-	RouteMaxLength = 256
+	routeMaxLength = 256
 	// RouterParamMaxLength set length limit of route pattern param
-	RouterParamMaxLength = 32
+	routerParamMaxLength = 32
 )
 
-// METHODS declare support HTTP method
-var METHODS = map[string]bool{
+// methods declare support HTTP method
+var methods = map[string]bool{
 	"GET":     true,
 	"POST":    true,
 	"PUT":     true,
@@ -25,8 +25,8 @@ var METHODS = map[string]bool{
 }
 
 // optimize ...
-var _radix [RouteMaxLength]byte
-var _param [RouterParamMaxLength]byte
+var _radix [routeMaxLength]byte
+var _param [routerParamMaxLength]byte
 
 // Router provlider router for baa
 type Router struct {
@@ -35,7 +35,7 @@ type Router struct {
 	notFoundHandler HandlerFunc
 	routeMap        map[string]*Route
 	routeNamedMap   map[string]string
-	group           *Group
+	group           *group
 }
 
 // Route is a tree node
@@ -49,8 +49,8 @@ type Route struct {
 	handlers []HandlerFunc
 }
 
-// Group route
-type Group struct {
+// group route
+type group struct {
 	pattern  string
 	handlers []HandlerFunc
 	mu       sync.RWMutex
@@ -60,7 +60,7 @@ type Group struct {
 func newRouter() *Router {
 	r := new(Router)
 	r.routeMap = make(map[string]*Route)
-	for m := range METHODS {
+	for m := range methods {
 		r.routeMap[m] = newRoute("/", nil, nil)
 	}
 	r.routeNamedMap = make(map[string]string)
@@ -79,8 +79,8 @@ func newRoute(pattern string, handles []HandlerFunc, router *Router) *Route {
 }
 
 // newGroup create a group router
-func newGroup() *Group {
-	g := new(Group)
+func newGroup() *group {
+	g := new(group)
 	g.handlers = make([]HandlerFunc, 0)
 	return g
 }
@@ -94,8 +94,8 @@ func (r *Router) match(method, uri string, c *Context) *Route {
 	return nil
 }
 
-// URLFor use named route return format url
-func (r *Router) URLFor(name string, args ...interface{}) string {
+// urlFor use named route return format url
+func (r *Router) urlFor(name string, args ...interface{}) string {
 	if name == "" {
 		return ""
 	}
@@ -121,7 +121,7 @@ func (r *Router) groupAdd(pattern string, f func(), handlers []HandlerFunc) {
 
 // Handle registers a new request handle with the given pattern, method and handlers.
 func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Route {
-	if _, ok := METHODS[method]; !ok {
+	if _, ok := methods[method]; !ok {
 		panic("unsupport http method [" + method + "]")
 	}
 	if pattern == "" {
@@ -130,8 +130,8 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	if pattern[0] != '/' {
 		panic("route pattern must begin /")
 	}
-	if len(pattern) > RouteMaxLength {
-		panic(fmt.Sprintf("route pattern max length limit %d", RouteMaxLength))
+	if len(pattern) > routeMaxLength {
+		panic(fmt.Sprintf("route pattern max length limit %d", routeMaxLength))
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -177,8 +177,8 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			if k == 0 {
 				panic("route pattern param is empty")
 			}
-			if k > RouterParamMaxLength {
-				panic(fmt.Sprintf("route pattern param max length limit %d", RouterParamMaxLength))
+			if k > routerParamMaxLength {
+				panic(fmt.Sprintf("route pattern param max length limit %d", routerParamMaxLength))
 			}
 			// check last character
 			p := ":" + string(param[:k])
@@ -367,7 +367,7 @@ func (r *Router) print(prefix string, root *Route) {
 }
 
 // reset group data for next group set
-func (g *Group) reset() {
+func (g *group) reset() {
 	g.pattern = ""
 	g.handlers = g.handlers[:0]
 }

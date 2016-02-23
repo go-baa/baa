@@ -13,7 +13,18 @@ func newDI() *DI {
 }
 
 // set register a di
+// baa dependency injection must be the special interface
 func (d *DI) set(name string, v interface{}) {
+	switch name {
+	case "logger":
+		if _, ok := v.(Logger); !ok {
+			panic("DI logger must be implement interface baa.Logger")
+		}
+	case "render":
+		if _, ok := v.(Renderer); !ok {
+			panic("DI render must be implement interface baa.Renderer")
+		}
+	}
 	d.store[name] = v
 }
 

@@ -1,20 +1,4 @@
-// Package baa provider a fast & simple Go web framework, routing, middleware, dependency injection, http context.
-//
-/*
-   package main
-
-   import (
-       "github.com/go-baa/baa"
-   )
-
-   func main() {
-       app := baa.Classic()
-       app.Get("/", func(c *baa.Context) {
-           c.String(200, "Hello World!")
-       })
-       app.Run(":8001")
-   }
-*/
+// Package baa provides an express Go web framework.
 package baa
 
 import (
@@ -40,8 +24,6 @@ type Baa struct {
 	name            string
 	di              *DI
 	router          *Router
-	logger          Logger
-	render          Renderer
 	pool            sync.Pool
 	errorHandler    ErrorHandleFunc
 	notFoundHandler HandlerFunc
@@ -57,7 +39,6 @@ type ErrorHandleFunc func(error, *Context)
 // Classic create a baa application with default config.
 func Classic() *Baa {
 	b := New()
-	b.SetRender(NewRender())
 	b.SetErrorHandler(b.DefaultErrorHandler)
 	return b
 }
@@ -71,9 +52,13 @@ func New() *Baa {
 			return newContext(nil, nil, b)
 		},
 	}
-	b.SetLogger(log.New(os.Stderr, "[Baa] ", log.LstdFlags))
-	b.SetDIer(newDI())
-	b.SetRouter(newRouter())
+	if os.Getenv("Baa.Env") != PROD {
+		b.debug = true
+	}
+	b.di = newDI()
+	b.router = newRouter()
+	b.SetDI("logger", log.New(os.Stderr, "[Baa] ", log.LstdFlags))
+	b.SetDI("render", newRender())
 	return b
 }
 
@@ -106,13 +91,13 @@ func (b *Baa) RunTLSServer(s *http.Server, crtFile, keyFile string) {
 func (b *Baa) run(s *http.Server, files ...string) {
 	s.Handler = b
 	if len(files) == 0 {
-		b.logger.Printf("Listen %s", s.Addr)
-		b.logger.Fatal(s.ListenAndServe())
+		b.Logger().Printf("Listen %s", s.Addr)
+		b.Logger().Fatal(s.ListenAndServe())
 	} else if len(files) == 2 {
-		b.logger.Printf("Listen %s with TLS", s.Addr)
-		b.logger.Fatal(s.ListenAndServeTLS(files[0], files[1]))
+		b.Logger().Printf("Listen %s with TLS", s.Addr)
+		b.Logger().Fatal(s.ListenAndServeTLS(files[0], files[1]))
 	} else {
-		b.logger.Fatal("invalid TLS configuration")
+		b.Logger().Fatal("invalid TLS configuration")
 	}
 }
 
@@ -148,29 +133,14 @@ func (b *Baa) SetDebug(v bool) {
 	b.debug = v
 }
 
-// SetDIer registers a Baa.DI
-func (b *Baa) SetDIer(di *DI) {
-	b.di = di
-}
-
-// SetLogger registers a Baa.Logger
-func (b *Baa) SetLogger(logger Logger) {
-	b.logger = logger
-}
-
 // Logger return baa logger
 func (b *Baa) Logger() Logger {
-	return b.logger
+	return b.GetDI("logger").(Logger)
 }
 
-// SetRender registers a Baa.Renderer
-func (b *Baa) SetRender(r Renderer) {
-	b.render = r
-}
-
-// SetRouter registers a Baa.Router
-func (b *Baa) SetRouter(r *Router) {
-	b.router = r
+// Render return baa render
+func (b *Baa) Render() Renderer {
+	return b.GetDI("render").(Renderer)
 }
 
 // SetErrorHandler registers a custom Baa.ErrorHandleFunc.
@@ -282,7 +252,7 @@ func (b *Baa) Head(pattern string, h ...HandlerFunc) *Route {
 // Any is a shortcut for b.router.handle("*", pattern, handlers)
 func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
 	var ru *Route
-	for m := range METHODS {
+	for m := range methods {
 		ru = b.router.add(m, pattern, h)
 	}
 	return ru
@@ -295,7 +265,7 @@ func (b *Baa) Error(err error, c *Context) {
 		return
 	}
 	http.Error(c.Resp, err.Error(), 500)
-	b.logger.Println("Error " + err.Error())
+	b.Logger().Println("Error " + err.Error())
 }
 
 // setNotFoundHandler set the route not match result.
@@ -317,5 +287,5 @@ func (b *Baa) NotFound(c *Context) {
 
 // URLFor use named route return format url
 func (b *Baa) URLFor(name string, args ...interface{}) string {
-	return b.router.URLFor(name, args...)
+	return b.router.urlFor(name, args...)
 }

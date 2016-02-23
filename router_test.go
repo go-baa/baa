@@ -6,7 +6,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var r = newRouter()
+var b = New()
+var r = b.router
 var c = newContext(nil, nil, nil)
 var f = func(c *Context) {}
 
@@ -41,15 +42,13 @@ func TestRouteAdd2(t *testing.T) {
 
 func TestRouteAdd3(t *testing.T) {
 	Convey("测试组路由添加", t, func() {
-		app := New()
-		app.SetRouter(r)
-		app.Group("/user", func() {
-			app.Get("/info", f)
-			app.Get("/info2", f)
+		b.Group("/user", func() {
+			b.Get("/info", f)
+			b.Get("/info2", f)
 		})
-		app.Group("/user", func() {
-			app.Get("/pass", f)
-			app.Get("/pass2", f)
+		b.Group("/user", func() {
+			b.Get("/pass", f)
+			b.Get("/pass2", f)
 		})
 		r.print("", r.routeMap["GET"])
 	})
