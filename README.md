@@ -28,7 +28,7 @@ a fast &amp; simple Go web framework, routing, middleware, dependency injection,
 
 ## TODO
 
-* Middleware: session, gzip, csrf
+* Middleware: session, gzip, csrf, render
 
 # Install
 
