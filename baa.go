@@ -54,24 +54,6 @@ type HandlerFunc func(*Context)
 // ErrorHandleFunc HTTP error handleFunc
 type ErrorHandleFunc func(error, *Context)
 
-// HTTPError represents an error that occured while handling a request.
-type HTTPError struct {
-	code    int
-	message string
-}
-
-// default application for baa
-var _defaultAPP *Baa
-
-func init() {
-	_defaultAPP = Classic()
-}
-
-// App return the default baa instance
-func App() *Baa {
-	return _defaultAPP
-}
-
 // Classic create a baa application with default config.
 func Classic() *Baa {
 	b := New()

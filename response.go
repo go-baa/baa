@@ -1,6 +1,8 @@
 package baa
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 )
 
@@ -58,6 +60,29 @@ func (r *Response) WriteHeader(code int) {
 	r.wroteHeader = true
 	r.status = code
 	r.resp.WriteHeader(code)
+}
+
+// Flush implements the http.Flusher interface to allow an HTTP handler to flush
+// buffered data to the client.
+// See [http.Flusher](https://golang.org/pkg/net/http/#Flusher)
+func (r *Response) Flush() {
+	r.resp.(http.Flusher).Flush()
+}
+
+// Hijack implements the http.Hijacker interface to allow an HTTP handler to
+// take over the connection.
+// See [http.Hijacker](https://golang.org/pkg/net/http/#Hijacker)
+func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return r.resp.(http.Hijacker).Hijack()
+}
+
+// CloseNotify implements the http.CloseNotifier interface to allow detecting
+// when the underlying connection has gone away.
+// This mechanism can be used to cancel long operations on the server if the
+// client has disconnected before the response is ready.
+// See [http.CloseNotifier](https://golang.org/pkg/net/http/#CloseNotifier)
+func (r *Response) CloseNotify() <-chan bool {
+	return r.resp.(http.CloseNotifier).CloseNotify()
 }
 
 // reset reuse response
