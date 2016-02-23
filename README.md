@@ -28,9 +28,6 @@ a fast &amp; simple Go web framework, routing, middleware, dependency injection,
 
 ## TODO
 
-* context json/jsonp/xml support
-* context cookie
-* render and template
 * Middleware: session, gzip, csrf
 
 # Install
