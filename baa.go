@@ -139,23 +139,20 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer b.pool.Put(c)
 	c.reset(w, r)
 
-	var h HandlerFunc
 	route := b.router.match(r.Method, r.URL.Path, c)
 	if route == nil {
 		// notFound
-		h = b.notFoundHandler
-		if h == nil {
-			h = func(c *Context) {
+		if b.notFoundHandler == nil {
+			c.routeHandler = func(c *Context) {
 				http.NotFound(c.Resp, c.Req)
 			}
+		} else {
+			c.routeHandler = b.notFoundHandler
 		}
 	} else {
-		h = route.handle
+		c.routeHandler = route.handle
 	}
 
-	// concat middleware handle and route handle to a list
-	c.mw = append(c.mw, b.middleware...)
-	c.mw = append(c.mw, h)
 	c.Next()
 }
 

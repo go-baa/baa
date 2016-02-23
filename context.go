@@ -8,13 +8,13 @@ import (
 // Context provlider a HTTP context for baa
 // context contains reqest, response, header, cookie and some content type.
 type Context struct {
-	Req    *http.Request
-	Resp   *Response
-	Data   map[string]interface{}
-	params map[string]string
-	baa    *Baa
-	mw     []HandlerFunc //middleware
-	mi     int           // middleware order
+	Req          *http.Request
+	Resp         *Response
+	baa          *Baa
+	Data         map[string]interface{}
+	params       map[string]string
+	routeHandler HandlerFunc // route match handler
+	mi           int         // middleware order
 }
 
 // newContext create a http context
@@ -22,6 +22,8 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
 	c.Resp = NewResponse(w, b)
 	c.baa = b
+	c.Data = make(map[string]interface{})
+	c.params = make(map[string]string)
 	c.reset(w, r)
 	return c
 }
@@ -30,10 +32,14 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.Resp.reset(w)
 	c.Req = r
-	c.Data = make(map[string]interface{})
-	c.params = make(map[string]string)
-	c.mw = c.mw[:0]
 	c.mi = 0
+	var k string
+	for k = range c.Data {
+		delete(c.Data, k)
+	}
+	for k = range c.params {
+		delete(c.params, k)
+	}
 }
 
 // SetParam read route param value from uri
@@ -161,13 +167,19 @@ func (c *Context) Baa() *Baa {
 
 // Next execute next middleware
 // if something wrote to http, break chain and return
+// handle middleware first
+// last execute route handler
 func (c *Context) Next() {
 	if c.Resp.Wrote() {
 		return
 	}
-	f := c.mw[c.mi]
-	c.mi++
-	if f != nil {
-		f(c)
+	if c.mi > len(c.baa.middleware) {
+		return
 	}
+	if c.mi < len(c.baa.middleware) {
+		c.baa.middleware[c.mi](c)
+	} else {
+		c.routeHandler(c)
+	}
+	c.mi++
 }
