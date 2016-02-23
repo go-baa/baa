@@ -103,7 +103,6 @@ func (b *Baa) run(s *http.Server, files ...string) {
 
 func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := b.pool.Get().(*Context)
-	defer b.pool.Put(c)
 	c.reset(w, r)
 
 	// build handler chain
@@ -126,6 +125,8 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.Next()
+    
+    b.pool.Put(c)
 }
 
 // SetDebug set baa debug
