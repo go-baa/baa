@@ -8,13 +8,13 @@ import (
 // Context provlider a HTTP context for baa
 // context contains reqest, response, header, cookie and some content type.
 type Context struct {
-	Req          *http.Request
-	Resp         *Response
-	baa          *Baa
-	Data         map[string]interface{}
-	params       map[string]string
-	routeHandler HandlerFunc // route match handler
-	mi           int         // middleware order
+	Req      *http.Request
+	Resp     *Response
+	baa      *Baa
+	Data     map[string]interface{}
+	params   map[string]string
+	handlers []HandlerFunc // middleware handler and route match handler
+	hi       int           // handlers execute position
 }
 
 // newContext create a http context
@@ -24,6 +24,7 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c.baa = b
 	c.Data = make(map[string]interface{})
 	c.params = make(map[string]string)
+	c.handlers = make([]HandlerFunc, 0, 1)
 	c.reset(w, r)
 	return c
 }
@@ -32,7 +33,8 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.Resp.reset(w)
 	c.Req = r
-	c.mi = 0
+	c.handlers = c.handlers[:0]
+	c.hi = 0
 	var k string
 	for k = range c.Data {
 		delete(c.Data, k)
@@ -170,16 +172,10 @@ func (c *Context) Baa() *Baa {
 // handle middleware first
 // last execute route handler
 func (c *Context) Next() {
-	if c.Resp.Wrote() {
+	if c.Resp.Wrote() || c.hi >= len(c.handlers) {
 		return
 	}
-	if c.mi > len(c.baa.middleware) {
-		return
-	}
-	if c.mi < len(c.baa.middleware) {
-		c.baa.middleware[c.mi](c)
-	} else {
-		c.routeHandler(c)
-	}
-	c.mi++
+	i := c.hi
+	c.hi++
+	c.handlers[i](c)
 }

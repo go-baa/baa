@@ -147,6 +147,10 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 		}
 	}
 
+	for i := 0; i < len(handlers); i++ {
+		handlers[i] = wrapHandlerFunc(handlers[i])
+	}
+
 	root := r.routeMap[method]
 	radix := _radix[:0]
 	var i, k int
@@ -391,14 +395,11 @@ func (r *Route) Name(name string) {
 	r.router.routeNamedMap[name] = string(p)
 }
 
-// handle route hadnle chain
-// if something wrote to http, break chain and return
-func (r *Route) handle(c *Context) {
-	for _, h := range r.handlers {
+// wrapHandlerFunc wrap for context handler chain
+func wrapHandlerFunc(h HandlerFunc) HandlerFunc {
+	return func(c *Context) {
 		h(c)
-		if c.Resp.Wrote() {
-			return
-		}
+		c.Next()
 	}
 }
 
