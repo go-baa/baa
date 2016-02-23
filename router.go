@@ -2,7 +2,6 @@ package baa
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -309,7 +308,7 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 		if pattern == root.pattern {
 			return root
 		}
-		if strings.HasPrefix(pattern, root.pattern) {
+		if len(pattern) >= len(root.pattern) && pattern[0:len(root.pattern)] == root.pattern {
 			pattern = pattern[len(root.pattern):]
 		} else {
 			return nil
@@ -319,19 +318,12 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 		if len(root.children) == 0 {
 			i = len(pattern)
 		} else {
-			for i = 0; i < len(pattern); i++ {
-				// find allow pattern contains :
-				if !isParamChar(pattern[i]) && pattern[i] != ':' {
-					break
-				}
+			for i = 0; i < len(pattern) && isParamChar(pattern[i]); i++ {
 			}
 		}
 		c.SetParam(root.pattern[1:], pattern[:i])
 		if i == len(pattern) {
-			if root.handlers != nil {
-				return root
-			}
-			return nil
+			return root
 		}
 		pattern = pattern[i:]
 	}
@@ -404,8 +396,9 @@ func wrapHandlerFunc(h HandlerFunc) HandlerFunc {
 }
 
 // isParamChar check the char can used for route params
+// a-z->65:90, A-Z->97:122, 0-9->48->57, _->95, :->58
 func isParamChar(c byte) bool {
-	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95 {
+	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 58) || c == 95 {
 		return true
 	}
 	return false
