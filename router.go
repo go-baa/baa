@@ -58,7 +58,7 @@ type Router struct {
 	notFoundHandler HandlerFunc
 	routeMap        [RouteLength]*Route
 	routeNamedMap   map[string]string
-	group           *group
+	groups          []*group
 }
 
 // Route is a tree node
@@ -76,7 +76,6 @@ type Route struct {
 type group struct {
 	pattern  string
 	handlers []HandlerFunc
-	mu       sync.RWMutex
 }
 
 // newRouter create a router instance
@@ -126,15 +125,14 @@ func (r *Router) urlFor(name string, args ...interface{}) string {
 
 // groupAdd add a group route has same prefix and handle chain
 func (r *Router) groupAdd(pattern string, f func(), handlers []HandlerFunc) {
-	r.group.mu.Lock()
-	defer r.group.mu.Unlock()
-
-	r.group.pattern = pattern
-	r.group.handlers = handlers
+	g := newGroup()
+	g.pattern = pattern
+	g.handlers = handlers
+	r.groups = append(r.groups, g)
 
 	f()
 
-	r.group.reset()
+	r.groups = r.groups[:len(r.groups)-1]
 }
 
 // Handle registers a new request handle with the given pattern, method and handlers.
@@ -154,15 +152,19 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// check group set, not concurrent safe
-	if r.group.pattern != "" {
-		pattern = r.group.pattern + pattern
-		if len(r.group.handlers) > 0 {
-			h := make([]HandlerFunc, 0, len(r.group.handlers)+len(handlers))
-			h = append(h, r.group.handlers...)
-			h = append(h, handlers...)
-			handlers = h
+	// check group set
+	if len(r.groups) > 0 {
+		var gpattern string
+		var ghandlers []*HandlerFunc
+		for i := range r.groups {
+			gpattern += r.groups[i].pattern
+			if len(r.groups[i].handlers) > 0 {
+				ghandlers = append(ghandlers, r.groups[i].handlers...)
+			}
 		}
+		pattern = gpattern + pattern
+		ghandlers = append(ghandlers, handlers...)
+		handlers = ghandlers
 	}
 
 	for i := 0; i < len(handlers); i++ {
@@ -363,12 +365,6 @@ func (r *Router) print(prefix string, root *Route) {
 	for i := range root.children {
 		r.print(prefix+" -> "+root.pattern, root.children[i])
 	}
-}
-
-// reset group data for next group set
-func (g *group) reset() {
-	g.pattern = ""
-	g.handlers = g.handlers[:0]
 }
 
 // Name set name of route

@@ -30,6 +30,9 @@ type Baa struct {
 	middleware      []HandlerFunc
 }
 
+// Middleware middleware handler
+type Middleware interface{}
+
 // HandlerFunc context handler
 type HandlerFunc func(*Context)
 
@@ -160,8 +163,10 @@ func (b *Baa) DefaultErrorHandler(err error, c *Context) {
 }
 
 // Use registers a middleware
-func (b *Baa) Use(m HandlerFunc) {
-	b.middleware = append(b.middleware, m)
+func (b *Baa) Use(m ...Middleware) {
+	for i := range m {
+		b.middleware = append(b.middleware, wrapMiddleware(m[i]))
+	}
 }
 
 // SetDI registers a dependency injection
@@ -289,4 +294,24 @@ func (b *Baa) NotFound(c *Context) {
 // URLFor use named route return format url
 func (b *Baa) URLFor(name string, args ...interface{}) string {
 	return b.router.urlFor(name, args...)
+}
+
+// wrapMiddleware wraps middleware.
+func wrapMiddleware(m Middleware) HandlerFunc {
+	switch m := m.(type) {
+	case HandlerFunc:
+		return wrapHandlerFunc(m)
+	case func(*Context):
+		return wrapHandlerFunc(m)
+	case http.Handler:
+		return wrapHandlerFunc(func(c *Context) {
+			m.ServeHTTP(c.Resp, c.Req)
+		})
+	case func(http.ResponseWriter, *http.Request):
+		return wrapHandlerFunc(func(c *Context) {
+			m(c.Resp, c.Req)
+		})
+	default:
+		panic("unknown middleware")
+	}
 }
