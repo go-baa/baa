@@ -59,9 +59,14 @@ type Context struct {
 	Resp     *Response
 	baa      *Baa
 	store    map[string]interface{}
-	params   map[string]string
+	params   []*paramItem  // route params
 	handlers []HandlerFunc // middleware handler and route match handler
 	hi       int           // handlers execute position
+}
+
+// paramItem context route param item
+type paramItem struct {
+	name, value string
 }
 
 // newContext create a http context
@@ -70,8 +75,8 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c.Resp = NewResponse(w, b)
 	c.baa = b
 	c.store = make(map[string]interface{})
-	c.params = make(map[string]string)
-	c.handlers = make([]HandlerFunc, 0, 1)
+	c.params = make([]*paramItem, 0, 2)
+	c.handlers = make([]HandlerFunc, 0, 2)
 	c.reset(w, r)
 	return c
 }
@@ -82,56 +87,73 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.Req = r
 	c.handlers = c.handlers[:0]
 	c.hi = 0
-	var k string
-	for k = range c.store {
-		delete(c.store, k)
-	}
-	for k = range c.params {
-		delete(c.params, k)
-	}
+	c.params = c.params[:0]
+	c.store = nil
 }
 
-// Get retrieves data from the context.
-func (c *Context) Get(key string) interface{} {
-	return c.store[key]
-}
-
-// Set saves data in the context.
+// Set saves data in context
 func (c *Context) Set(key string, v interface{}) {
+	if c.store == nil {
+		c.store = make(map[string]interface{})
+	}
 	c.store[key] = v
 }
 
+// Get returns data from context
+func (c *Context) Get(key string) interface{} {
+	if c.store == nil {
+		return nil
+	}
+	return c.store[key]
+}
+
+// Gets returns data map from content
+func (c *Context) Gets() map[string]interface{} {
+	if c.store == nil {
+		c.store = make(map[string]interface{})
+	}
+	return c.store
+}
+
 // SetParam read route param value from uri
-func (c *Context) SetParam(key, v string) {
-	c.params[key] = v
+func (c *Context) SetParam(name, value string) {
+	c.params = append(c.params, &paramItem{
+		name:  name,
+		value: value,
+	})
 }
 
 // Param get route param from context
 func (c *Context) Param(name string) string {
-	return c.params[name]
+	for i := 0; i < len(c.params); i++ {
+		if c.params[i].name == name {
+			return c.params[i].value
+		}
+	}
+	return ""
 }
 
 // ParamInt get route param from context and format to int
 func (c *Context) ParamInt(name string) int {
-	v, _ := strconv.Atoi(c.params[name])
+	v, _ := strconv.Atoi(c.Param(name))
 	return v
 }
 
 // ParamInt64 get route param from context and format to int64
 func (c *Context) ParamInt64(name string) int64 {
-	v, _ := strconv.ParseInt(c.params[name], 10, 64)
+	v, _ := strconv.ParseInt(c.Param(name), 10, 64)
 	return v
 }
 
 // ParamFloat get route param from context and format to float64
 func (c *Context) ParamFloat(name string) float64 {
-	v, _ := strconv.ParseFloat(c.params[name], 64)
+	v, _ := strconv.ParseFloat(c.Param(name), 64)
 	return v
 }
 
 // ParamBool get route param from context and format to bool
 func (c *Context) ParamBool(name string) bool {
-	v, _ := strconv.ParseBool(c.params[name])
+	v, _ := strconv.ParseBool(c.Param(name))
 	return v
 }
 
@@ -190,8 +212,8 @@ func (c *Context) QueryBool(name string) bool {
 	return v
 }
 
-// Gets return http.Request.URL queryString data
-func (c *Context) Gets() map[string]interface{} {
+// Querys return http.Request.URL queryString data
+func (c *Context) Querys() map[string]interface{} {
 	params := make(map[string]interface{})
 	var newValues url.Values
 	if c.Req.URL != nil {
