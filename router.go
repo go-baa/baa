@@ -290,14 +290,16 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 }
 
 func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
-	var ru *Route
 	var i int
 	// static route
 	if !root.hasParam {
 		if pattern == root.pattern {
 			return root
 		}
-		if len(pattern) >= len(root.pattern) && pattern[0:len(root.pattern)] == root.pattern {
+		if len(root.children) == 0 {
+			return nil
+		}
+		if pattern[0:len(root.pattern)] == root.pattern {
 			pattern = pattern[len(root.pattern):]
 		} else {
 			return nil
@@ -315,15 +317,15 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 		}
 		pattern = pattern[i:]
 	}
-	if len(root.children) == 0 {
-		return nil
-	}
 
 	// first, static route
 	for i = range root.children {
-		if ru = r.lookup(pattern, root.children[i], c); ru != nil {
-			if ru.handlers != nil {
-				return ru
+		if !root.children[i].hasParam && len(pattern) < len(root.children[i].pattern) {
+			continue
+		}
+		if node := r.lookup(pattern, root.children[i], c); node != nil {
+			if node.handlers != nil {
+				return node
 			}
 		}
 	}
