@@ -59,14 +59,10 @@ type Context struct {
 	Resp     *Response
 	baa      *Baa
 	store    map[string]interface{}
-	params   []*paramItem  // route params
+	pNames   []string      // route params names
+	pValues  []string      // route params values
 	handlers []HandlerFunc // middleware handler and route match handler
 	hi       int           // handlers execute position
-}
-
-// paramItem context route param item
-type paramItem struct {
-	name, value string
 }
 
 // newContext create a http context
@@ -75,7 +71,8 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c.Resp = NewResponse(w, b)
 	c.baa = b
 	c.store = make(map[string]interface{})
-	c.params = make([]*paramItem, 0, 2)
+	c.pNames = make([]string, 0, 2)
+	c.pValues = make([]string, 0, 2)
 	c.handlers = make([]HandlerFunc, 0, 2)
 	c.reset(w, r)
 	return c
@@ -87,7 +84,8 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.Req = r
 	c.handlers = c.handlers[:0]
 	c.hi = 0
-	c.params = c.params[:0]
+	c.pNames = c.pNames[:0]
+	c.pValues = c.pValues[:0]
 	c.store = nil
 }
 
@@ -117,17 +115,15 @@ func (c *Context) Gets() map[string]interface{} {
 
 // SetParam read route param value from uri
 func (c *Context) SetParam(name, value string) {
-	c.params = append(c.params, &paramItem{
-		name:  name,
-		value: value,
-	})
+	c.pNames = append(c.pNames, name)
+	c.pValues = append(c.pValues, value)
 }
 
 // Param get route param from context
 func (c *Context) Param(name string) string {
-	for i := 0; i < len(c.params); i++ {
-		if c.params[i].name == name {
-			return c.params[i].value
+	for i := 0; i < len(c.pNames); i++ {
+		if c.pNames[i] == name {
+			return c.pValues[i]
 		}
 	}
 	return ""
