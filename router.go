@@ -225,7 +225,6 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 
 // insert build the route tree
 func (r *Router) insert(root *Route, node *Route) *Route {
-	fmt.Printf("->insert: root: %s, node: %s\n", root.pattern, node.pattern)
 	// same route
 	if root.pattern == node.pattern {
 		if node.handlers != nil {
