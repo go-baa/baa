@@ -20,7 +20,7 @@ func TestRouteAdd1(t *testing.T) {
 		r.add("GET", "/abd", []HandlerFunc{f})
 		r.add("GET", "/abcdef", []HandlerFunc{f})
 		r.add("GET", "/bcdefg", []HandlerFunc{f})
-		r.print("", r.routeMap["GET"])
+		r.print("", r.routeMap[methodKeys["GET"]])
 	})
 }
 
@@ -36,7 +36,7 @@ func TestRouteAdd2(t *testing.T) {
 		r.add("GET", "/a/:project/file/:name", []HandlerFunc{f})
 		r.add("GET", "/a/", []HandlerFunc{f})
 		r.add("GET", "/a/*/xxx", []HandlerFunc{f})
-		r.print("", r.routeMap["GET"])
+		r.print("", r.routeMap[methodKeys["GET"]])
 	})
 }
 
@@ -50,7 +50,7 @@ func TestRouteAdd3(t *testing.T) {
 			b.Get("/pass", f)
 			b.Get("/pass2", f)
 		})
-		r.print("", r.routeMap["GET"])
+		r.print("", r.routeMap[methodKeys["GET"]])
 	})
 }
 

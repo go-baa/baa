@@ -111,7 +111,7 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	route := b.router.match(r.Method, r.URL.Path, c)
-	if route == nil {
+	if route == nil || route.handlers == nil {
 		// notFound
 		if b.notFoundHandler == nil {
 			c.handlers = append(c.handlers, func(c *Context) {
@@ -125,8 +125,8 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.Next()
-    
-    b.pool.Put(c)
+
+	b.pool.Put(c)
 }
 
 // SetDebug set baa debug

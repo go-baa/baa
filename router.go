@@ -12,6 +12,19 @@ const (
 	routerParamMaxLength = 32
 )
 
+const (
+	// method key in routeMap
+	GET int = iota
+	POST
+	PUT
+	DELETE
+	PATCH
+	OPTIONS
+	HEAD
+	// RouteLength route table length
+	RouteLength
+)
+
 // methods declare support HTTP method
 var methods = map[string]bool{
 	"GET":     true,
@@ -23,6 +36,17 @@ var methods = map[string]bool{
 	"HEAD":    true,
 }
 
+// methodKeys declare method key in routeMap
+var methodKeys = map[string]int{
+	"GET":     GET,
+	"POST":    POST,
+	"PUT":     PUT,
+	"DELETE":  DELETE,
+	"PATCH":   PATCH,
+	"OPTIONS": OPTIONS,
+	"HEAD":    HEAD,
+}
+
 // optimize ...
 var _radix [routeMaxLength]byte
 var _param [routerParamMaxLength]byte
@@ -32,7 +56,7 @@ type Router struct {
 	autoHead        bool
 	mu              sync.RWMutex
 	notFoundHandler HandlerFunc
-	routeMap        map[string]*Route
+	routeMap        [RouteLength]*Route
 	routeNamedMap   map[string]string
 	group           *group
 }
@@ -44,7 +68,7 @@ type Route struct {
 	hasParam bool
 	parent   *Route
 	router   *Router
-	children map[string]*Route
+	children []*Route
 	handlers []HandlerFunc
 }
 
@@ -58,9 +82,8 @@ type group struct {
 // newRouter create a router instance
 func newRouter() *Router {
 	r := new(Router)
-	r.routeMap = make(map[string]*Route)
-	for m := range methods {
-		r.routeMap[m] = newRoute("/", nil, nil)
+	for i := 0; i < len(r.routeMap); i++ {
+		r.routeMap[i] = newRoute("/", nil, nil)
 	}
 	r.routeNamedMap = make(map[string]string)
 	r.group = newGroup()
@@ -73,7 +96,7 @@ func newRoute(pattern string, handles []HandlerFunc, router *Router) *Route {
 	r.pattern = pattern
 	r.handlers = handles
 	r.router = router
-	r.children = make(map[string]*Route)
+	r.children = make([]*Route, 0)
 	return r
 }
 
@@ -86,11 +109,7 @@ func newGroup() *group {
 
 // Match match the uri for handler
 func (r *Router) match(method, uri string, c *Context) *Route {
-	ru := r.lookup(uri, r.routeMap[method], c)
-	if ru != nil && ru.handlers != nil {
-		return ru
-	}
-	return nil
+	return r.lookup(uri, r.routeMap[methodKeys[method]], c)
 }
 
 // urlFor use named route return format url
@@ -150,7 +169,7 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 		handlers[i] = wrapHandlerFunc(handlers[i])
 	}
 
-	root := r.routeMap[method]
+	root := r.routeMap[methodKeys[method]]
 	radix := _radix[:0]
 	var i, k int
 	var tru *Route
@@ -217,12 +236,14 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 		if root.parent == nil {
 			panic("Router.insert error route has no parent")
 		}
-		ru.parent = root.parent
-		root.parent.children[ru.pattern] = ru
-		return ru
+		return root.parent.insertChild(ru)
 	}
 
-	var k string
+	if !root.hasParam && ru.hasParam {
+		return root.insertChild(ru)
+	}
+
+	var k int
 	if root.hasParam && !ru.hasParam {
 		for k = range root.children {
 			if root.children[k].pattern == ru.pattern {
@@ -231,39 +252,25 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 				}
 				return root.children[k]
 			}
-			if hasPrefix(root.children[k].pattern, ru.pattern) > 0 {
+			if root.children[k].hasPrefix(ru) > 0 {
 				return r.insert(root.children[k], ru)
 			}
 		}
 
-		ru.parent = root
-		root.children[ru.pattern] = ru
+		root.insertChild(ru)
 		return ru
 	}
 
-	var ok bool
-	if !root.hasParam && ru.hasParam {
-		if _, ok = root.children[ru.pattern]; ok {
-			if ru.handlers != nil {
-				root.children[ru.pattern].handlers = ru.handlers
-			}
-		} else {
-			ru.parent = root
-			root.children[ru.pattern] = ru
-		}
-		return root.children[ru.pattern]
-	}
-
 	// find radix
-	pos := hasPrefix(root.pattern, ru.pattern)
+	pos := root.hasPrefix(ru)
 	if pos == 0 {
 		panic("Router.insert error root[" + root.pattern + "] and node[" + ru.pattern + "] not have both prefix")
 	}
 	if pos == len(ru.pattern) {
 		ru.parent = root.parent
-		ru.children[root.pattern] = root
-		delete(root.parent.children, root.pattern)
-		root.parent.children[ru.pattern] = ru
+		ru.insertChild(root)
+		root.parent.insertChild(ru)
+		root.parent.deleteChild(root)
 		root.pattern = root.pattern[pos:]
 		root.parent = ru
 		return ru
@@ -278,31 +285,32 @@ func (r *Router) insert(root *Route, ru *Route) *Route {
 				}
 				return root.children[k]
 			}
-			if hasPrefix(root.children[k].pattern, ru.pattern) > 0 {
+			if root.children[k].hasPrefix(ru) > 0 {
 				return r.insert(root.children[k], ru)
 			}
 		}
 
-		ru.parent = root
-		root.children[ru.pattern] = ru
+		root.insertChild(ru)
 		return ru
 	}
 
-	delete(root.parent.children, root.pattern)
-	_root := newRoute(root.pattern[:pos], nil, r)
-	_root.parent = root.parent
-	ru.parent = _root
+	// _parent root and ru has new parent
+	_parent := newRoute(root.pattern[:pos], nil, r)
+	_parent.parent = root.parent
+	root.parent.insertChild(_parent)
+	root.parent.deleteChild(root)
+	_parent.insertChild(ru)
+
 	newRoot := newRoute(root.pattern[pos:], root.handlers, r)
 	newRoot.children = root.children
-	newRoot.parent = _root
-	_root.children[newRoot.pattern] = newRoot
-	_root.children[ru.pattern] = ru
-	root.parent.children[_root.pattern] = _root
+	_parent.insertChild(newRoot)
+
 	return ru
 }
 
 func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 	var ru *Route
+	var i int
 	// static route
 	if !root.hasParam {
 		if pattern == root.pattern {
@@ -314,7 +322,6 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 			return nil
 		}
 	} else {
-		var i int
 		if len(root.children) == 0 {
 			i = len(pattern)
 		} else {
@@ -332,8 +339,8 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 	}
 
 	// first, static route
-	for _, v := range root.children {
-		if ru = r.lookup(pattern, v, c); ru != nil {
+	for i = range root.children {
+		if ru = r.lookup(pattern, root.children[i], c); ru != nil {
 			if ru.handlers != nil {
 				return ru
 			}
@@ -387,6 +394,65 @@ func (r *Route) Name(name string) {
 	r.router.routeNamedMap[name] = string(p)
 }
 
+// deleteChild find child and delete from root route
+func (r *Route) deleteChild(child *Route) {
+	for k := 0; k < len(r.children); k++ {
+		if r.children[k].pattern == child.pattern {
+			if len(r.children) == 1 {
+				r.children = r.children[:0]
+				return
+			}
+			if k == 0 {
+				r.children = r.children[1:]
+				return
+			}
+			if k+1 == len(r.children) {
+				r.children = r.children[:k]
+				return
+			}
+			r.children = append(r.children[0:k], r.children[k+1:]...)
+			return
+		}
+	}
+}
+
+// insertChild insert child into root route, and returns the child route
+func (r *Route) insertChild(child *Route) *Route {
+	for k := 0; k < len(r.children); k++ {
+		if r.children[k].pattern == child.pattern {
+			if child.handlers != nil {
+				r.children[k].handlers = child.handlers
+			}
+			return r.children[k]
+		}
+	}
+	child.parent = r
+	r.children = append(r.children, child)
+	return child
+}
+
+// hasChild check root has child, if yes return child route, or reutrn nil
+func (r *Route) hasChild(child *Route) *Route {
+	for k := 0; k < len(r.children); k++ {
+		if r.children[k].pattern == child.pattern {
+			return r.children[k]
+		}
+	}
+	return nil
+}
+
+// hasPrefix returns the same prefix position, if none return 0
+func (r *Route) hasPrefix(ru *Route) int {
+	l := len(r.pattern)
+	var i int
+	for i = 0; i < len(ru.pattern); i++ {
+		if i >= l || ru.pattern[i] != r.pattern[i] {
+			break
+		}
+	}
+	return i
+}
+
 // wrapHandlerFunc wrap for context handler chain
 func wrapHandlerFunc(h HandlerFunc) HandlerFunc {
 	return func(c *Context) {
@@ -402,16 +468,4 @@ func isParamChar(c byte) bool {
 		return true
 	}
 	return false
-}
-
-// hasPrefix returns the same prefix position
-func hasPrefix(s1, s2 string) int {
-	l := len(s1)
-	var i int
-	for i = 0; i < len(s2); i++ {
-		if i >= l || s2[i] != s1[i] {
-			break
-		}
-	}
-	return i
 }
