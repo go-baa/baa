@@ -51,7 +51,7 @@ Based on [go-http-routing-benchmark] (https://github.com/julienschmidt/go-http-r
 ##### [GitHub API](http://developer.github.com/v3)
 
 ```
-> Baa:        284640 ns/op,       0 B/op,     0 allocs/op
+> Baa:         73657 ns/op,       0 B/op,     0 allocs/op
 > Beego:     1109160 ns/op,  146272 B/op,  2092 allocs/op
 > Echo:        38662 ns/op,       0 B/op,     0 allocs/op
 > Macaron:    709932 ns/op,  224960 B/op,  2315 allocs/op
@@ -62,7 +62,7 @@ Based on [go-http-routing-benchmark] (https://github.com/julienschmidt/go-http-r
 
 ```
 BenchmarkAce_GithubAll              20000             93675 ns/op           13792 B/op       167 allocs/op
-BenchmarkBaa_GithubAll               5000            284640 ns/op               0 B/op         0 allocs/op
+BenchmarkBaa_GithubAll              20000             73657 ns/op               0 B/op         0 allocs/op
 BenchmarkBear_GithubAll             10000            264194 ns/op           79952 B/op       943 allocs/op
 BenchmarkBeego_GithubAll             2000           1109160 ns/op          146272 B/op      2092 allocs/op
 BenchmarkBone_GithubAll              1000           2063973 ns/op          648016 B/op      8119 allocs/op
