@@ -85,7 +85,7 @@ func newRouter() *Router {
 		r.routeMap[i] = newRoute("/", nil, nil)
 	}
 	r.routeNamedMap = make(map[string]string)
-	r.group = newGroup()
+	r.groups = make([]*group, 0)
 	return r
 }
 
@@ -155,7 +155,7 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	// check group set
 	if len(r.groups) > 0 {
 		var gpattern string
-		var ghandlers []*HandlerFunc
+		var ghandlers []HandlerFunc
 		for i := range r.groups {
 			gpattern += r.groups[i].pattern
 			if len(r.groups[i].handlers) > 0 {
@@ -224,90 +224,86 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 }
 
 // insert build the route tree
-func (r *Router) insert(root *Route, ru *Route) *Route {
+func (r *Router) insert(root *Route, node *Route) *Route {
+	fmt.Printf("->insert: root: %s, node: %s\n", root.pattern, node.pattern)
 	// same route
-	if root.pattern == ru.pattern {
-		if ru.handlers != nil {
-			root.handlers = ru.handlers
+	if root.pattern == node.pattern {
+		if node.handlers != nil {
+			root.handlers = node.handlers
 		}
 		return root
 	}
 
 	// param route
-	if root.hasParam && ru.hasParam {
+	if root.hasParam && node.hasParam {
 		if root.parent == nil {
 			panic("Router.insert error route has no parent")
 		}
-		return root.parent.insertChild(ru)
+		return root.parent.insertChild(node)
 	}
 
-	if !root.hasParam && ru.hasParam {
-		return root.insertChild(ru)
+	if !root.hasParam && node.hasParam {
+		return root.insertChild(node)
 	}
 
-	var k int
-	if root.hasParam && !ru.hasParam {
-		for k = range root.children {
-			if root.children[k].pattern == ru.pattern {
-				if ru.handlers != nil {
-					root.children[k].handlers = ru.handlers
+	var i int
+	if root.hasParam && !node.hasParam {
+		for i = range root.children {
+			if root.children[i].pattern == node.pattern {
+				if node.handlers != nil {
+					root.children[i].handlers = node.handlers
 				}
-				return root.children[k]
+				return root.children[i]
 			}
-			if root.children[k].hasPrefix(ru) > 0 {
-				return r.insert(root.children[k], ru)
+			if root.children[i].hasPrefix(node) > 0 {
+				return r.insert(root.children[i], node)
 			}
 		}
 
-		root.insertChild(ru)
-		return ru
+		root.insertChild(node)
+		return node
 	}
 
 	// find radix
-	pos := root.hasPrefix(ru)
+	pos := root.hasPrefix(node)
 	if pos == 0 {
-		panic("Router.insert error root[" + root.pattern + "] and node[" + ru.pattern + "] not have both prefix")
+		panic("Router.insert error root[" + root.pattern + "] and node[" + node.pattern + "] not have both prefix")
 	}
-	if pos == len(ru.pattern) {
-		ru.parent = root.parent
-		ru.insertChild(root)
-		root.parent.insertChild(ru)
+	if pos == len(node.pattern) {
 		root.parent.deleteChild(root)
+		root.parent.insertChild(node)
 		root.pattern = root.pattern[pos:]
-		root.parent = ru
-		return ru
+		node.insertChild(root)
+		return node
 	}
 
-	ru.pattern = ru.pattern[pos:]
+	node.pattern = node.pattern[pos:]
 	if pos == len(root.pattern) {
-		for k = range root.children {
-			if root.children[k].pattern == ru.pattern {
-				if ru.handlers != nil {
-					root.children[k].handlers = ru.handlers
+		for i = range root.children {
+			if root.children[i].pattern == node.pattern {
+				if node.handlers != nil {
+					root.children[i].handlers = node.handlers
 				}
-				return root.children[k]
+				return root.children[i]
 			}
-			if root.children[k].hasPrefix(ru) > 0 {
-				return r.insert(root.children[k], ru)
+			if root.children[i].hasPrefix(node) > 0 {
+				return r.insert(root.children[i], node)
 			}
 		}
 
-		root.insertChild(ru)
-		return ru
+		root.insertChild(node)
+		return node
 	}
 
 	// _parent root and ru has new parent
 	_parent := newRoute(root.pattern[:pos], nil, r)
-	_parent.parent = root.parent
-	root.parent.insertChild(_parent)
 	root.parent.deleteChild(root)
-	_parent.insertChild(ru)
+	root.parent.insertChild(_parent)
+	root.pattern = root.pattern[pos:]
+	_parent.insertChild(root)
+	_parent.insertChild(node)
 
-	newRoot := newRoute(root.pattern[pos:], root.handlers, r)
-	newRoot.children = root.children
-	_parent.insertChild(newRoot)
-
-	return ru
+	return node
 }
 
 func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
@@ -392,34 +388,35 @@ func (r *Route) Name(name string) {
 
 // deleteChild find child and delete from root route
 func (r *Route) deleteChild(child *Route) {
-	for k := 0; k < len(r.children); k++ {
-		if r.children[k].pattern == child.pattern {
-			if len(r.children) == 1 {
-				r.children = r.children[:0]
-				return
-			}
-			if k == 0 {
-				r.children = r.children[1:]
-				return
-			}
-			if k+1 == len(r.children) {
-				r.children = r.children[:k]
-				return
-			}
-			r.children = append(r.children[0:k], r.children[k+1:]...)
+	for i := 0; i < len(r.children); i++ {
+		if r.children[i].pattern != child.pattern {
+			continue
+		}
+		if len(r.children) == 1 {
+			r.children = r.children[:0]
 			return
 		}
+		if i == 0 {
+			r.children = r.children[1:]
+			return
+		}
+		if i+1 == len(r.children) {
+			r.children = r.children[:i]
+			return
+		}
+		r.children = append(r.children[:i], r.children[i+1:]...)
+		return
 	}
 }
 
 // insertChild insert child into root route, and returns the child route
 func (r *Route) insertChild(child *Route) *Route {
-	for k := 0; k < len(r.children); k++ {
-		if r.children[k].pattern == child.pattern {
+	for i := 0; i < len(r.children); i++ {
+		if r.children[i].pattern == child.pattern {
 			if child.handlers != nil {
-				r.children[k].handlers = child.handlers
+				r.children[i].handlers = child.handlers
 			}
-			return r.children[k]
+			return r.children[i]
 		}
 	}
 	child.parent = r
@@ -429,9 +426,9 @@ func (r *Route) insertChild(child *Route) *Route {
 
 // hasChild check root has child, if yes return child route, or reutrn nil
 func (r *Route) hasChild(child *Route) *Route {
-	for k := 0; k < len(r.children); k++ {
-		if r.children[k].pattern == child.pattern {
-			return r.children[k]
+	for i := 0; i < len(r.children); i++ {
+		if r.children[i].pattern == child.pattern {
+			return r.children[i]
 		}
 	}
 	return nil
@@ -441,10 +438,7 @@ func (r *Route) hasChild(child *Route) *Route {
 func (r *Route) hasPrefix(ru *Route) int {
 	l := len(r.pattern)
 	var i int
-	for i = 0; i < len(ru.pattern); i++ {
-		if i >= l || ru.pattern[i] != r.pattern[i] {
-			break
-		}
+	for i = 0; i < len(ru.pattern) && i < l && ru.pattern[i] == r.pattern[i]; i++ {
 	}
 	return i
 }
