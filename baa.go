@@ -307,6 +307,10 @@ func wrapMiddleware(m Middleware) HandlerFunc {
 		return wrapHandlerFunc(func(c *Context) {
 			m.ServeHTTP(c.Resp, c.Req)
 		})
+	case http.HandlerFunc:
+		return wrapHandlerFunc(func(c *Context) {
+			m(c.Resp, c.Req)
+		})
 	case func(http.ResponseWriter, *http.Request):
 		return wrapHandlerFunc(func(c *Context) {
 			m(c.Resp, c.Req)
