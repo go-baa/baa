@@ -6,13 +6,6 @@ import (
 )
 
 const (
-	// RouteMaxLength set length limit of route pattern
-	routeMaxLength = 256
-	// RouterParamMaxLength set length limit of route pattern param
-	routerParamMaxLength = 32
-)
-
-const (
 	// method key in routeMap
 	GET int = iota
 	POST
@@ -46,10 +39,6 @@ var methodKeys = map[string]int{
 	"OPTIONS": OPTIONS,
 	"HEAD":    HEAD,
 }
-
-// optimize ...
-var _radix [routeMaxLength]byte
-var _param [routerParamMaxLength]byte
 
 // Router provlider router for baa
 type Router struct {
@@ -146,9 +135,6 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	if pattern[0] != '/' {
 		panic("route pattern must begin /")
 	}
-	if len(pattern) > routeMaxLength {
-		panic(fmt.Sprintf("route pattern max length limit %d", routeMaxLength))
-	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -172,7 +158,8 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	}
 
 	root := r.routeMap[methodKeys[method]]
-	radix := _radix[:0]
+	var radix []byte
+	var param []byte
 	var i, k int
 	var tru *Route
 	for i = 0; i < len(pattern); i++ {
@@ -181,10 +168,10 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			// clear static route
 			if len(radix) > 0 {
 				root = r.insert(root, newRoute(string(radix), nil, nil))
-				radix = _radix[:0]
+				radix = radix[:0]
 			}
 			// set param route
-			param := _param[:0]
+			param = param[:0]
 			k = 0
 			for i = i + 1; i < len(pattern); i++ {
 				if !isParamChar(pattern[i]) {
@@ -196,9 +183,6 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			}
 			if k == 0 {
 				panic("route pattern param is empty")
-			}
-			if k > routerParamMaxLength {
-				panic(fmt.Sprintf("route pattern param max length limit %d", routerParamMaxLength))
 			}
 			// check last character
 			p := ":" + string(param[:k])
