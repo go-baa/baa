@@ -1,4 +1,3 @@
-// Package baa provides an express Go web framework.
 package baa
 
 import (
@@ -39,13 +38,6 @@ type HandlerFunc func(*Context)
 // ErrorHandleFunc HTTP error handleFunc
 type ErrorHandleFunc func(error, *Context)
 
-// Classic create a baa application with default config.
-func Classic() *Baa {
-	b := New()
-	b.SetErrorHandler(b.DefaultErrorHandler)
-	return b
-}
-
 // New create a baa application without any config.
 func New() *Baa {
 	b := new(Baa)
@@ -60,6 +52,8 @@ func New() *Baa {
 	}
 	b.di = newDI()
 	b.router = newRouter()
+	b.errorHandler = b.DefaultErrorHandler
+	b.notFoundHandler = b.DefaultNotFoundHandler
 	b.SetDI("logger", log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDI("render", newRender())
 	return b
@@ -109,20 +103,12 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.reset(w, r)
 
 	// build handler chain
-	if len(b.middleware) > 0 {
-		c.handlers = append(c.handlers, b.middleware...)
-	}
+	c.handlers = append(c.handlers, b.middleware...)
 
 	route := b.router.lookup(r.URL.Path, b.router.routeMap[methodKeys[r.Method]], c)
+	// notFound
 	if route == nil || route.handlers == nil {
-		// notFound
-		if b.notFoundHandler == nil {
-			c.handlers = append(c.handlers, func(c *Context) {
-				http.NotFound(c.Resp, c.Req)
-			})
-		} else {
-			c.handlers = append(c.handlers, b.notFoundHandler)
-		}
+		c.handlers = append(c.handlers, b.notFoundHandler)
 	} else {
 		c.handlers = append(c.handlers, route.handlers...)
 	}
@@ -150,16 +136,6 @@ func (b *Baa) Render() Renderer {
 // SetErrorHandler registers a custom Baa.ErrorHandleFunc.
 func (b *Baa) SetErrorHandler(h ErrorHandleFunc) {
 	b.errorHandler = h
-}
-
-// DefaultErrorHandler invokes the default HTTP error handler.
-func (b *Baa) DefaultErrorHandler(err error, c *Context) {
-	code := http.StatusInternalServerError
-	msg := http.StatusText(code)
-	if b.debug {
-		msg = err.Error()
-	}
-	http.Error(c.Resp, msg, code)
 }
 
 // Use registers a middleware
@@ -264,31 +240,38 @@ func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
 	return ru
 }
 
-// Error ...
+// NotFound set not found route handler
+func (b *Baa) NotFound(h HandlerFunc) {
+	b.notFoundHandler = h
+}
+
+// Error execute internal error handler
 func (b *Baa) Error(err error, c *Context) {
 	if b.errorHandler != nil {
 		b.errorHandler(err, c)
 		return
 	}
 	http.Error(c.Resp, err.Error(), 500)
-	b.Logger().Println("Error " + err.Error())
-}
-
-// setNotFoundHandler set the route not match result.
-// Configurable http.HandlerFunc which is called when no matching route is
-// found. If it is not set, http.NotFound is used.
-// Be sure to set 404 response code in your handler.
-func (b *Baa) setNotFoundHandler(h HandlerFunc) {
-	b.notFoundHandler = h
-}
-
-// NotFound execute 404 handler
-func (b *Baa) NotFound(c *Context) {
-	if b.notFoundHandler != nil {
-		b.notFoundHandler(c)
-		return
+	if b.debug {
+		b.Logger().Println("Error " + err.Error())
 	}
-	http.NotFound(c.Resp, c.Req)
+}
+
+// DefaultErrorHandler invokes the default HTTP error handler.
+func (b *Baa) DefaultErrorHandler(err error, c *Context) {
+	code := http.StatusInternalServerError
+	msg := http.StatusText(code)
+	if b.debug {
+		msg = err.Error()
+	}
+	http.Error(c.Resp, msg, code)
+}
+
+// DefaultNotFoundHandler invokes the default HTTP error handler.
+func (b *Baa) DefaultNotFoundHandler(c *Context) {
+	code := http.StatusNotFound
+	msg := http.StatusText(code)
+	http.Error(c.Resp, msg, code)
 }
 
 // URLFor use named route return format url
@@ -300,9 +283,9 @@ func (b *Baa) URLFor(name string, args ...interface{}) string {
 func wrapMiddleware(m Middleware) HandlerFunc {
 	switch m := m.(type) {
 	case HandlerFunc:
-		return wrapHandlerFunc(m)
+		return m
 	case func(*Context):
-		return wrapHandlerFunc(m)
+		return m
 	case http.Handler:
 		return wrapHandlerFunc(func(c *Context) {
 			m.ServeHTTP(c.Resp, c.Req)

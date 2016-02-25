@@ -1,4 +1,4 @@
-// baa
+// Package baa provides an express Go web framework.
 //
 /*
    package main
@@ -8,7 +8,7 @@
    )
 
    func main() {
-       app := baa.Classic()
+       app := baa.New()
        app.Get("/", func(c *baa.Context) {
            c.String(200, "Hello World!")
        })

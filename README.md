@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-    app := baa.Classic()
+    app := baa.New()
     app.Get("/", func(c *baa.Context) {
         c.String(200, "Hello World!")
     })
