@@ -238,7 +238,7 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 				}
 				return root.children[i]
 			}
-			if root.children[i].hasPrefix(node) > 0 {
+			if root.children[i].hasPrefixString(node.pattern) > 0 {
 				return r.insert(root.children[i], node)
 			}
 		}
@@ -248,7 +248,7 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 	}
 
 	// find radix
-	pos := root.hasPrefix(node)
+	pos := root.hasPrefixString(node.pattern)
 	if pos == 0 {
 		panic("Router.insert error root[" + root.pattern + "] and node[" + node.pattern + "] not have both prefix")
 	}
@@ -269,7 +269,7 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 				}
 				return root.children[i]
 			}
-			if root.children[i].hasPrefix(node) > 0 {
+			if root.children[i].hasPrefixString(node.pattern) > 0 {
 				return r.insert(root.children[i], node)
 			}
 		}
@@ -299,7 +299,7 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 		if len(root.children) == 0 {
 			return nil
 		}
-		if pattern[0:len(root.pattern)] == root.pattern {
+		if i = root.hasPrefixString(pattern); i == len(root.pattern) {
 			pattern = pattern[len(root.pattern):]
 		} else {
 			return nil
@@ -319,7 +319,7 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 	}
 
 	// first, static route
-	for i = range root.children {
+	for i = 0; i < len(root.children); i++ {
 		if !root.children[i].hasParam && len(pattern) < len(root.children[i].pattern) {
 			continue
 		}
@@ -418,10 +418,15 @@ func (r *Route) hasChild(child *Route) *Route {
 }
 
 // hasPrefix returns the same prefix position, if none return 0
-func (r *Route) hasPrefix(ru *Route) int {
-	l := len(r.pattern)
-	var i int
-	for i = 0; i < len(ru.pattern) && i < l && ru.pattern[i] == r.pattern[i]; i++ {
+func (r *Route) hasPrefix(child *Route) int {
+	return r.hasPrefixString(child.pattern)
+}
+
+// hasPrefixString returns the same prefix position, if none return 0
+func (r *Route) hasPrefixString(s string) int {
+	var i, l int
+	l = len(r.pattern)
+	for i = 0; i < len(s) && i < l && s[i] == r.pattern[i]; i++ {
 	}
 	return i
 }
