@@ -323,10 +323,8 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 		if !root.children[i].hasParam && len(pattern) < len(root.children[i].pattern) {
 			continue
 		}
-		if node := r.lookup(pattern, root.children[i], c); node != nil {
-			if node.handlers != nil {
-				return node
-			}
+		if node := r.lookup(pattern, root.children[i], c); node != nil && node.handlers != nil {
+			return node
 		}
 	}
 
