@@ -73,7 +73,7 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c.store = make(map[string]interface{})
 	c.pNames = make([]string, 0, 2)
 	c.pValues = make([]string, 0, 2)
-	c.handlers = make([]HandlerFunc, 0, 2)
+	c.handlers = append(c.handlers, b.middleware...)
 	c.reset(w, r)
 	return c
 }
@@ -82,7 +82,7 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.Resp.reset(w)
 	c.Req = r
-	c.handlers = c.handlers[:0]
+	c.handlers = c.handlers[:len(c.baa.middleware)]
 	c.hi = 0
 	c.pNames = c.pNames[:0]
 	c.pValues = c.pValues[:0]

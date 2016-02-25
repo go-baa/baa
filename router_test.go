@@ -8,7 +8,7 @@ import (
 
 var b = New()
 var r = b.router
-var c = newContext(nil, nil, nil)
+var c = newContext(nil, nil, b)
 var f = func(c *Context) {}
 
 func TestRouteAdd1(t *testing.T) {
