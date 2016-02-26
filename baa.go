@@ -32,7 +32,10 @@ type Baa struct {
 // Middleware middleware handler
 type Middleware interface{}
 
-// HandlerFunc context handler
+// Handler context handler
+type Handler interface{}
+
+// HandlerFunc context handler func
 type HandlerFunc func(*Context)
 
 // ErrorHandleFunc HTTP error handleFunc
