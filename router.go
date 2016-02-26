@@ -96,11 +96,6 @@ func newGroup() *group {
 	return g
 }
 
-// match match the uri for handler
-func (r *Router) match(method, uri string, c *Context) *Route {
-	return r.lookup(uri, r.routeMap[methodKeys[method]], c)
-}
-
 // urlFor use named route return format url
 func (r *Router) urlFor(name string, args ...interface{}) string {
 	if name == "" {
@@ -290,46 +285,55 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 	return node
 }
 
-// lookup find a route
-func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
+// match match the route
+func (r *Router) match(method, pattern string, c *Context) *Route {
 	var i, l int
-	// static route
-	if !root.hasParam {
-		if pattern == root.pattern {
-			return root
-		}
-		if len(root.children) == 0 {
-			return nil
-		}
-		if root.hasPrefixString(pattern) == len(root.pattern) {
-			pattern = pattern[len(root.pattern):]
-		} else {
-			return nil
-		}
-	} else {
-		l = len(pattern)
-		if len(root.children) == 0 {
-			i = l
-		} else {
-			for i = 0; i < l && isParamChar(pattern[i]); i++ {
-			}
-		}
-		c.SetParam(root.paramName, pattern[:i])
-		if i == l {
-			return root
-		}
-		pattern = pattern[i:]
-	}
+	var root, nn *Route
+	root = r.routeMap[methodKeys[method]]
 
-	// static route
-	l = len(pattern)
-	for i = 0; i < len(root.children); i++ {
-		if l < len(root.children[i].pattern) {
+	for {
+		// static route
+		if !root.hasParam {
+			l = len(root.pattern)
+			if root.pattern == pattern[:l] {
+				if l == len(pattern) {
+					return root
+				}
+				if len(root.children) == 0 {
+					return nil
+				}
+				pattern = pattern[l:]
+			} else {
+				return nil
+			}
+		} else {
+			l = len(pattern)
+			if len(root.children) == 0 {
+				i = l
+			} else {
+				for i = 0; i < l && isParamChar(pattern[i]); i++ {
+				}
+			}
+			c.SetParam(root.paramName, pattern[:i])
+			if i == l {
+				return root
+			}
+			pattern = pattern[i:]
+		}
+
+		// child static route
+		if nn = root.findChild(pattern[0]); nn != nil {
+			root = nn
 			continue
 		}
-		if node := r.lookup(pattern, root.children[i], c); node != nil && node.handlers != nil {
-			return node
+
+		// child param route
+		if root.children[0].hasParam {
+			root = root.children[0]
+			continue
 		}
+
+		break
 	}
 
 	return nil
@@ -373,6 +377,18 @@ func (r *Route) Name(name string) {
 	r.router.routeNamedMap[name] = string(p)
 }
 
+// findChild find child static route
+func (r *Route) findChild(b byte) *Route {
+	var i int
+	var l = len(r.children)
+	for ; i < l; i++ {
+		if !r.children[i].hasParam && r.children[i].pattern[0] == b {
+			return r.children[i]
+		}
+	}
+	return nil
+}
+
 // deleteChild find child and delete from root route
 func (r *Route) deleteChild(node *Route) {
 	for i := 0; i < len(r.children); i++ {
@@ -398,7 +414,8 @@ func (r *Route) deleteChild(node *Route) {
 
 // insertChild insert child into root route, and returns the child route
 func (r *Route) insertChild(node *Route) *Route {
-	for i := 0; i < len(r.children); i++ {
+	var i int
+	for ; i < len(r.children); i++ {
 		if r.children[i].pattern == node.pattern {
 			if r.children[i].hasParam && node.hasParam && r.children[i].paramName != node.paramName {
 				panic("Router.insert error cannot use two param [:" + r.children[i].paramName + ", " + node.paramName + "]with same prefix!")
@@ -411,6 +428,12 @@ func (r *Route) insertChild(node *Route) *Route {
 	}
 	node.parent = r
 	r.children = append(r.children, node)
+
+	i = len(r.children) - 1
+	if i > 0 && r.children[i].hasParam {
+		r.children[0], r.children[i] = r.children[i], r.children[0]
+		return r.children[0]
+	}
 	return node
 }
 

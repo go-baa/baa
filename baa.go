@@ -103,7 +103,7 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.reset(w, r)
 
 	// build handler chain
-	route := b.router.lookup(r.URL.Path, b.router.routeMap[methodKeys[r.Method]], c)
+	route := b.router.match(r.Method, r.URL.Path, c)
 	// notFound
 	if route == nil || route.handlers == nil {
 		c.handlers = append(c.handlers, b.notFoundHandler)
