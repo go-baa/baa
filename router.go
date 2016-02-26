@@ -45,20 +45,21 @@ type Router struct {
 	autoHead        bool
 	mu              sync.RWMutex
 	notFoundHandler HandlerFunc
+	groups          []*group
 	routeMap        [RouteLength]*Route
 	routeNamedMap   map[string]string
-	groups          []*group
 }
 
 // Route is a tree node
 // route use radix tree
 type Route struct {
-	pattern  string
-	hasParam bool
-	parent   *Route
-	router   *Router
-	children []*Route
-	handlers []HandlerFunc
+	hasParam  bool
+	parent    *Route
+	router    *Router
+	children  []*Route
+	handlers  []HandlerFunc
+	pattern   string
+	paramName string
 }
 
 // group route
@@ -95,7 +96,7 @@ func newGroup() *group {
 	return g
 }
 
-// Match match the uri for handler
+// match match the uri for handler
 func (r *Router) match(method, uri string, c *Context) *Route {
 	return r.lookup(uri, r.routeMap[methodKeys[method]], c)
 }
@@ -185,12 +186,12 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 				panic("route pattern param is empty")
 			}
 			// check last character
-			p := ":" + string(param[:k])
 			if i == len(pattern) {
-				tru = newRoute(p, handlers, r)
+				tru = newRoute(":", handlers, r)
 			} else {
-				tru = newRoute(p, nil, nil)
+				tru = newRoute(":", nil, nil)
 			}
+			tru.paramName = string(param[:k])
 			tru.hasParam = true
 			root = r.insert(root, tru)
 			continue
@@ -289,8 +290,9 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 	return node
 }
 
+// lookup find a route
 func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
-	var i int
+	var i, l int
 	// static route
 	if !root.hasParam {
 		if pattern == root.pattern {
@@ -299,28 +301,30 @@ func (r *Router) lookup(pattern string, root *Route, c *Context) *Route {
 		if len(root.children) == 0 {
 			return nil
 		}
-		if i = root.hasPrefixString(pattern); i == len(root.pattern) {
+		if root.hasPrefixString(pattern) == len(root.pattern) {
 			pattern = pattern[len(root.pattern):]
 		} else {
 			return nil
 		}
 	} else {
+		l = len(pattern)
 		if len(root.children) == 0 {
-			i = len(pattern)
+			i = l
 		} else {
-			for i = 0; i < len(pattern) && isParamChar(pattern[i]); i++ {
+			for i = 0; i < l && isParamChar(pattern[i]); i++ {
 			}
 		}
-		c.SetParam(root.pattern[1:], pattern[:i])
-		if i == len(pattern) {
+		c.SetParam(root.paramName, pattern[:i])
+		if i == l {
 			return root
 		}
 		pattern = pattern[i:]
 	}
 
-	// first, static route
+	// static route
+	l = len(pattern)
 	for i = 0; i < len(root.children); i++ {
-		if !root.children[i].hasParam && len(pattern) < len(root.children[i].pattern) {
+		if l < len(root.children[i].pattern) {
 			continue
 		}
 		if node := r.lookup(pattern, root.children[i], c); node != nil && node.handlers != nil {
@@ -370,9 +374,9 @@ func (r *Route) Name(name string) {
 }
 
 // deleteChild find child and delete from root route
-func (r *Route) deleteChild(child *Route) {
+func (r *Route) deleteChild(node *Route) {
 	for i := 0; i < len(r.children); i++ {
-		if r.children[i].pattern != child.pattern {
+		if r.children[i].pattern != node.pattern {
 			continue
 		}
 		if len(r.children) == 1 {
@@ -393,24 +397,27 @@ func (r *Route) deleteChild(child *Route) {
 }
 
 // insertChild insert child into root route, and returns the child route
-func (r *Route) insertChild(child *Route) *Route {
+func (r *Route) insertChild(node *Route) *Route {
 	for i := 0; i < len(r.children); i++ {
-		if r.children[i].pattern == child.pattern {
-			if child.handlers != nil {
-				r.children[i].handlers = child.handlers
+		if r.children[i].pattern == node.pattern {
+			if r.children[i].hasParam && node.hasParam && r.children[i].paramName != node.paramName {
+				panic("Router.insert error cannot use two param [:" + r.children[i].paramName + ", " + node.paramName + "]with same prefix!")
+			}
+			if node.handlers != nil {
+				r.children[i].handlers = node.handlers
 			}
 			return r.children[i]
 		}
 	}
-	child.parent = r
-	r.children = append(r.children, child)
-	return child
+	node.parent = r
+	r.children = append(r.children, node)
+	return node
 }
 
 // hasChild check root has child, if yes return child route, or reutrn nil
-func (r *Route) hasChild(child *Route) *Route {
+func (r *Route) hasChild(node *Route) *Route {
 	for i := 0; i < len(r.children); i++ {
-		if r.children[i].pattern == child.pattern {
+		if r.children[i].pattern == node.pattern {
 			return r.children[i]
 		}
 	}
@@ -418,15 +425,18 @@ func (r *Route) hasChild(child *Route) *Route {
 }
 
 // hasPrefix returns the same prefix position, if none return 0
-func (r *Route) hasPrefix(child *Route) int {
-	return r.hasPrefixString(child.pattern)
+func (r *Route) hasPrefix(node *Route) int {
+	return r.hasPrefixString(node.pattern)
 }
 
 // hasPrefixString returns the same prefix position, if none return 0
 func (r *Route) hasPrefixString(s string) int {
 	var i, l int
 	l = len(r.pattern)
-	for i = 0; i < len(s) && i < l && s[i] == r.pattern[i]; i++ {
+	if len(s) < l {
+		l = len(s)
+	}
+	for i = 0; i < l && s[i] == r.pattern[i]; i++ {
 	}
 	return i
 }
