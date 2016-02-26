@@ -70,7 +70,6 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
 	c.Resp = NewResponse(w, b)
 	c.baa = b
-	c.store = make(map[string]interface{})
 	c.pNames = make([]string, 0, 2)
 	c.pValues = make([]string, 0, 2)
 	c.handlers = append(c.handlers, b.middleware...)
