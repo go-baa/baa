@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html/template"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -441,6 +442,26 @@ func (c *Context) Redirect(code int, url string) error {
 	}
 	http.Redirect(c.Resp, c.Req, url, code)
 	return nil
+}
+
+// RemoteAddr returns more real IP address.
+func (c *Context) RemoteAddr() string {
+	var addr string
+	var key string
+	key = "_def:remoteAddr"
+	if addr, ok := c.Get(key).(string); ok {
+		return addr
+	}
+	addr = c.Req.Header.Get("X-Real-IP")
+	if len(addr) == 0 {
+		addr = c.Req.Header.Get("X-Forwarded-For")
+		if addr == "" {
+			addr = c.Req.RemoteAddr
+			addr, _, _ = net.SplitHostPort(addr)
+		}
+	}
+	c.Set(key, addr)
+	return addr
 }
 
 // parseForm ...
