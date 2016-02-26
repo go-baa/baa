@@ -27,15 +27,13 @@ func TestRouteAdd1(t *testing.T) {
 func TestRouteAdd2(t *testing.T) {
 	Convey("测试参数路由添加", t, func() {
 		r.add("GET", "/", []HandlerFunc{f})
-		r.add("GET", "/p/:id/id", []HandlerFunc{f})
-		r.add("GET", "/p", []HandlerFunc{f})
-		r.add("GET", "/p/:id", []HandlerFunc{f})
-		r.add("GET", "/a/:ibb", []HandlerFunc{f})
 		r.add("GET", "/a/:id/id", []HandlerFunc{f})
-		r.add("GET", "/a/:ibb/name", []HandlerFunc{f})
-		r.add("GET", "/a/:project/file/:name", []HandlerFunc{f})
+		r.add("GET", "/a", []HandlerFunc{f})
+		r.add("GET", "/a/:id", []HandlerFunc{f})
+		r.add("GET", "/a/:id/name", []HandlerFunc{f})
 		r.add("GET", "/a/", []HandlerFunc{f})
 		r.add("GET", "/a/*/xxx", []HandlerFunc{f})
+		r.add("GET", "/p/:project/file/:name", []HandlerFunc{f})
 		r.print("", r.routeMap[methodKeys["GET"]])
 	})
 }
@@ -45,6 +43,10 @@ func TestRouteAdd3(t *testing.T) {
 		b.Group("/user", func() {
 			b.Get("/info", f)
 			b.Get("/info2", f)
+			b.Group("/group", func() {
+				b.Get("/info", f)
+				b.Get("/info2", f)
+			})
 		})
 		b.Group("/user", func() {
 			b.Get("/pass", f)
@@ -62,7 +64,7 @@ func TestRoutematch1(t *testing.T) {
 		ru = r.match("GET", "/a/123/id", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.match("GET", "/a/yst/file/a.jpg", c)
+		ru = r.match("GET", "/p/yst/file/a.jpg", c)
 		So(ru, ShouldNotBeNil)
 
 		ru = r.match("GET", "/user/info", c)
