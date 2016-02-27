@@ -479,16 +479,6 @@ func (c *Context) parseForm() {
 	}
 }
 
-// Error invokes the registered HTTP error handler. Generally used by middleware.
-func (c *Context) Error(err error) {
-	c.baa.Error(err, c)
-}
-
-// Baa ...
-func (c *Context) Baa() *Baa {
-	return c.baa
-}
-
 // Next execute next middleware
 // if something wrote to http, break chain and return
 // handle middleware first
@@ -500,4 +490,19 @@ func (c *Context) Next() {
 	i := c.hi
 	c.hi++
 	c.handlers[i](c)
+}
+
+// Error invokes the registered HTTP error handler. Generally used by middleware.
+func (c *Context) Error(err error) {
+	c.baa.Error(err, c)
+}
+
+// Baa get app instance
+func (c *Context) Baa() *Baa {
+	return c.baa
+}
+
+// DI get registered dependency injection service
+func (c *Context) DI(name string) interface{} {
+	return c.baa.GetDI(name)
 }
