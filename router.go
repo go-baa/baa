@@ -54,12 +54,13 @@ type Router struct {
 // route use radix tree
 type Route struct {
 	hasParam  bool
+	alpha     byte
+	pattern   string
+	paramName string
 	parent    *Route
 	router    *Router
 	children  []*Route
 	handlers  []HandlerFunc
-	pattern   string
-	paramName string
 }
 
 // group route
@@ -83,6 +84,7 @@ func newRouter() *Router {
 func newRoute(pattern string, handles []HandlerFunc, router *Router) *Route {
 	r := new(Route)
 	r.pattern = pattern
+	r.alpha = pattern[0]
 	r.handlers = handles
 	r.router = router
 	r.children = make([]*Route, 0)
@@ -251,12 +253,12 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 	if pos == len(node.pattern) {
 		root.parent.deleteChild(root)
 		root.parent.insertChild(node)
-		root.pattern = root.pattern[pos:]
+		root.resetPattern(root.pattern[pos:])
 		node.insertChild(root)
 		return node
 	}
 
-	node.pattern = node.pattern[pos:]
+	node.resetPattern(node.pattern[pos:])
 	if pos == len(root.pattern) {
 		for i = range root.children {
 			if root.children[i].pattern == node.pattern {
@@ -278,7 +280,7 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 	_parent := newRoute(root.pattern[:pos], nil, r)
 	root.parent.deleteChild(root)
 	root.parent.insertChild(_parent)
-	root.pattern = root.pattern[pos:]
+	root.resetPattern(root.pattern[pos:])
 	_parent.insertChild(root)
 	_parent.insertChild(node)
 
@@ -311,7 +313,8 @@ func (r *Router) match(method, pattern string, c *Context) *Route {
 			if len(root.children) == 0 {
 				i = l
 			} else {
-				for i = 0; i < l && isParamChar(pattern[i]); i++ {
+				// for i = 0; i < l && isParamChar(pattern[i]); i++ {
+				for i = 0; i < l && pattern[i] != '/'; i++ {
 				}
 			}
 			c.SetParam(root.paramName, pattern[:i])
@@ -321,13 +324,22 @@ func (r *Router) match(method, pattern string, c *Context) *Route {
 			pattern = pattern[i:]
 		}
 
-		// child static route
+		// only one child
+		if len(root.children) == 1 {
+			if root.children[0].hasParam || root.children[0].alpha == pattern[0] {
+				root = root.children[0]
+				continue
+			}
+			break
+		}
+
+		// children static route
 		if nn = root.findChild(pattern[0]); nn != nil {
 			root = nn
 			continue
 		}
 
-		// child param route
+		// children param route
 		if root.children[0].hasParam {
 			root = root.children[0]
 			continue
@@ -382,7 +394,7 @@ func (r *Route) findChild(b byte) *Route {
 	var i int
 	var l = len(r.children)
 	for ; i < l; i++ {
-		if !r.children[i].hasParam && r.children[i].pattern[0] == b {
+		if !r.children[i].hasParam && r.children[i].alpha == b {
 			return r.children[i]
 		}
 	}
@@ -445,6 +457,12 @@ func (r *Route) hasChild(node *Route) *Route {
 		}
 	}
 	return nil
+}
+
+// resetPattern reset route pattern and alpha
+func (r *Route) resetPattern(pattern string) {
+	r.pattern = pattern
+	r.alpha = pattern[0]
 }
 
 // hasPrefix returns the same prefix position, if none return 0
