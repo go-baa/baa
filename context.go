@@ -71,11 +71,11 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
 	c.Resp = NewResponse(w, b)
 	c.baa = b
-	c.pNames = make([]string, 0, MaxRouteParams)
-	c.pValues = make([]string, 0, MaxRouteParams)
+	c.pNames = make([]string, 0, 32)
+	c.pValues = make([]string, 0, 32)
 	c.handlers = make([]HandlerFunc, len(b.middleware), len(b.middleware)+3)
 	copy(c.handlers, b.middleware)
-	c.reset(w, r)
+    c.reset(w, r)
 	return c
 }
 

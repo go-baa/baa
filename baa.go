@@ -17,11 +17,6 @@ const (
 	TEST = "test"
 )
 
-const (
-	// MaxRouteParams allow the max num of route prarms
-	MaxRouteParams = 1024
-)
-
 // Baa provlider an application
 type Baa struct {
 	debug           bool
