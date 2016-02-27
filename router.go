@@ -216,13 +216,6 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 	}
 
 	// param route
-	if root.hasParam && node.hasParam {
-		if root.parent == nil {
-			panic("Router.insert error route has no parent")
-		}
-		return root.parent.insertChild(node)
-	}
-
 	if !root.hasParam && node.hasParam {
 		return root.insertChild(node)
 	}
@@ -247,9 +240,6 @@ func (r *Router) insert(root *Route, node *Route) *Route {
 
 	// find radix
 	pos := root.hasPrefixString(node.pattern)
-	if pos == 0 {
-		panic("Router.insert error root[" + root.pattern + "] and node[" + node.pattern + "] not have both prefix")
-	}
 	if pos == len(node.pattern) {
 		root.parent.deleteChild(root)
 		root.parent.insertChild(node)
@@ -297,7 +287,7 @@ func (r *Router) match(method, pattern string, c *Context) *Route {
 		// static route
 		if !root.hasParam {
 			l = len(root.pattern)
-			if root.pattern == pattern[:l] {
+			if l <= len(pattern) && root.pattern == pattern[:l] {
 				if l == len(pattern) {
 					return root
 				}
@@ -430,7 +420,7 @@ func (r *Route) insertChild(node *Route) *Route {
 	for ; i < len(r.children); i++ {
 		if r.children[i].pattern == node.pattern {
 			if r.children[i].hasParam && node.hasParam && r.children[i].param != node.param {
-				panic("Router.insert error cannot use two param [:" + r.children[i].param + ", " + node.param + "]with same prefix!")
+				panic("Router.insert error cannot use two param [:" + r.children[i].param + ", :" + node.param + "]with same prefix!")
 			}
 			if node.handlers != nil {
 				r.children[i].handlers = node.handlers
@@ -449,25 +439,10 @@ func (r *Route) insertChild(node *Route) *Route {
 	return node
 }
 
-// hasChild check root has child, if yes return child route, or reutrn nil
-func (r *Route) hasChild(node *Route) *Route {
-	for i := 0; i < len(r.children); i++ {
-		if r.children[i].pattern == node.pattern {
-			return r.children[i]
-		}
-	}
-	return nil
-}
-
 // resetPattern reset route pattern and alpha
 func (r *Route) resetPattern(pattern string) {
 	r.pattern = pattern
 	r.alpha = pattern[0]
-}
-
-// hasPrefix returns the same prefix position, if none return 0
-func (r *Route) hasPrefix(node *Route) int {
-	return r.hasPrefixString(node.pattern)
 }
 
 // hasPrefixString returns the same prefix position, if none return 0
