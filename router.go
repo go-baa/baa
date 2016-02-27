@@ -53,14 +53,14 @@ type Router struct {
 // Route is a tree node
 // route use radix tree
 type Route struct {
-	hasParam  bool
-	alpha     byte
-	pattern   string
-	paramName string
-	parent    *Route
-	router    *Router
-	children  []*Route
-	handlers  []HandlerFunc
+	hasParam bool
+	alpha    byte
+	pattern  string
+	param    string
+	parent   *Route
+	router   *Router
+	children []*Route
+	handlers []HandlerFunc
 }
 
 // group route
@@ -188,7 +188,7 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			} else {
 				tru = newRoute(":", nil, nil)
 			}
-			tru.paramName = string(param[:k])
+			tru.param = string(param[:k])
 			tru.hasParam = true
 			root = r.insert(root, tru)
 			continue
@@ -309,15 +309,15 @@ func (r *Router) match(method, pattern string, c *Context) *Route {
 				return nil
 			}
 		} else {
+			// params route
 			l = len(pattern)
 			if len(root.children) == 0 {
 				i = l
 			} else {
-				// for i = 0; i < l && isParamChar(pattern[i]); i++ {
-				for i = 0; i < l && pattern[i] != '/'; i++ {
+				for i = 0; i < l && isParamChar(pattern[i]); i++ {
 				}
 			}
-			c.SetParam(root.paramName, pattern[:i])
+			c.SetParam(root.param, pattern[:i])
 			if i == l {
 				return root
 			}
@@ -394,7 +394,7 @@ func (r *Route) findChild(b byte) *Route {
 	var i int
 	var l = len(r.children)
 	for ; i < l; i++ {
-		if !r.children[i].hasParam && r.children[i].alpha == b {
+		if r.children[i].alpha == b && !r.children[i].hasParam {
 			return r.children[i]
 		}
 	}
@@ -429,8 +429,8 @@ func (r *Route) insertChild(node *Route) *Route {
 	var i int
 	for ; i < len(r.children); i++ {
 		if r.children[i].pattern == node.pattern {
-			if r.children[i].hasParam && node.hasParam && r.children[i].paramName != node.paramName {
-				panic("Router.insert error cannot use two param [:" + r.children[i].paramName + ", " + node.paramName + "]with same prefix!")
+			if r.children[i].hasParam && node.hasParam && r.children[i].param != node.param {
+				panic("Router.insert error cannot use two param [:" + r.children[i].param + ", " + node.param + "]with same prefix!")
 			}
 			if node.handlers != nil {
 				r.children[i].handlers = node.handlers
