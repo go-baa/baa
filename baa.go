@@ -97,7 +97,7 @@ func (b *Baa) run(s *http.Server, files ...string) {
 		b.Logger().Printf("Listen %s with TLS", s.Addr)
 		b.Logger().Fatal(s.ListenAndServeTLS(files[0], files[1]))
 	} else {
-		b.Logger().Fatal("invalid TLS configuration")
+		panic("invalid TLS configuration")
 	}
 }
 
@@ -132,11 +132,6 @@ func (b *Baa) Logger() Logger {
 // Render return baa render
 func (b *Baa) Render() Renderer {
 	return b.GetDI("render").(Renderer)
-}
-
-// SetErrorHandler registers a custom Baa.ErrorHandleFunc.
-func (b *Baa) SetErrorHandler(h ErrorHandleFunc) {
-	b.errorHandler = h
 }
 
 // Use registers a middleware
@@ -252,10 +247,12 @@ func (b *Baa) Error(err error, c *Context) {
 		b.errorHandler(err, c)
 		return
 	}
-	http.Error(c.Resp, err.Error(), 500)
 	if b.debug {
-		b.Logger().Println("Error " + err.Error())
+		http.Error(c.Resp, err.Error(), http.StatusInternalServerError)
+	} else {
+		http.Error(c.Resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
+	b.Logger().Println("Conext Error ->" + err.Error())
 }
 
 // DefaultErrorHandler invokes the default HTTP error handler.
@@ -287,13 +284,9 @@ func wrapMiddleware(m Middleware) HandlerFunc {
 		return m
 	case func(*Context):
 		return m
-	case http.Handler:
+	case http.Handler, http.HandlerFunc:
 		return wrapHandlerFunc(func(c *Context) {
-			m.ServeHTTP(c.Resp, c.Req)
-		})
-	case http.HandlerFunc:
-		return wrapHandlerFunc(func(c *Context) {
-			m(c.Resp, c.Req)
+			m.(http.Handler).ServeHTTP(c.Resp, c.Req)
 		})
 	case func(http.ResponseWriter, *http.Request):
 		return wrapHandlerFunc(func(c *Context) {

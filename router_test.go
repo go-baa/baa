@@ -1,6 +1,8 @@
 package baa
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -115,6 +117,53 @@ func TestRouteAdd8(t *testing.T) {
 			So(e, ShouldNotBeNil)
 		}()
 		r.add("GET", "abc", []HandlerFunc{f})
+	})
+}
+
+func TestRouteAdd9(t *testing.T) {
+	Convey("other route method", t, func() {
+		b2 := New()
+		Convey("set auto head route", func() {
+			b2.SetAutoHead(true)
+			b2.Get("/head", func(c *Context) {
+				So(c.Req.Method, ShouldEqual, "HEAD")
+			})
+			req, _ := http.NewRequest("HEAD", "/head", nil)
+			w := httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("set multi method", func() {
+			b2.Route("/mul", "GET,HEAD,POST", func(c *Context) {
+				c.String(200, "mul")
+			})
+			req, _ := http.NewRequest("HEAD", "/mul", nil)
+			w := httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+
+			req, _ = http.NewRequest("GET", "/mul", nil)
+			w = httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			req, _ = http.NewRequest("POST", "/mul", nil)
+			w = httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("methods", func() {
+			b2.Get("/methods", f)
+			b2.Patch("/methods", f)
+			b2.Post("/methods", f)
+			b2.Put("/methods", f)
+			b2.Delete("/methods", f)
+			b2.Options("/methods", f)
+			b2.Head("/methods", f)
+			b2.Any("/any", f)
+			b2.NotFound(func(c *Context) {
+				c.String(404, "baa not found")
+			})
+		})
 	})
 }
 

@@ -10,8 +10,28 @@ import (
 
 func TestStaticRoute1(t *testing.T) {
 	Convey("static serve register", t, func() {
-		b.Static("/static", "./_fixture", false, f)
-		b.Static("/assets/", "./_fixture/", true, f)
+		Convey("register without slash", func() {
+			b.Static("/static", "./_fixture", false, f)
+		})
+		Convey("register with slash", func() {
+			b.Static("/assets/", "./_fixture/", true, f)
+		})
+		Convey("register with empty path", func() {
+			b2 := New()
+			defer func() {
+				e := recover()
+				So(e, ShouldNotBeNil)
+			}()
+			b2.Static("", "./_fixture/", true, f)
+		})
+		Convey("register with empty dir", func() {
+			b2 := New()
+			defer func() {
+				e := recover()
+				So(e, ShouldNotBeNil)
+			}()
+			b2.Static("/static", "", true, f)
+		})
 	})
 }
 
