@@ -90,7 +90,7 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
 	c.store = nil
 }
 
-// Set saves data in context
+// Set store data in context
 func (c *Context) Set(key string, v interface{}) {
 	if c.store == nil {
 		c.store = make(map[string]interface{})
@@ -106,7 +106,7 @@ func (c *Context) Get(key string) interface{} {
 	return c.store[key]
 }
 
-// Gets returns data map from content
+// Gets returns data map from content store
 func (c *Context) Gets() map[string]interface{} {
 	if c.store == nil {
 		c.store = make(map[string]interface{})
