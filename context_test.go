@@ -1,10 +1,16 @@
 package baa
 
 import (
+	"bytes"
+	"encoding/xml"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -39,7 +45,6 @@ func TestContextParam1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/context/123", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -52,7 +57,6 @@ func TestContextParam1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/context/123", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -65,7 +69,6 @@ func TestContextParam1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/context/123", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -78,7 +81,6 @@ func TestContextParam1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/context/123.1", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -91,7 +93,6 @@ func TestContextParam1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/context/1", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 	})
@@ -108,7 +109,6 @@ func TestContextQuery1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/context/1?p=123", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -123,7 +123,6 @@ func TestContextQuery1(t *testing.T) {
 			req.Header.Set(ContentType, ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -171,7 +170,6 @@ func TestContextQuery1(t *testing.T) {
 			req.Header.Set(ContentType, ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -194,7 +192,6 @@ func TestContextQuery1(t *testing.T) {
 			req.Header.Set(ContentType, ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
@@ -218,9 +215,24 @@ func TestContextQuery1(t *testing.T) {
 			req.Header.Set(ContentType, ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
+	})
+}
+
+func TestContextFile1(t *testing.T) {
+	Convey("context file", t, func() {
+		b.Post("/file", func(c *Context) {
+			c.Posts()
+			c.GetFile("file1")
+			c.SaveToFile("file1", "/tmp/baa.jpg")
+		})
+		data := make(map[string]string)
+		data["a"] = "1"
+		req, _ := newfileUploadRequest("/file", data, "file1", "./_fixture/img/baa.jpg")
+		w := httptest.NewRecorder()
+		b.ServeHTTP(w, req)
+		So(w.Code, ShouldEqual, http.StatusOK)
 	})
 }
 
@@ -265,9 +277,190 @@ func TestContextCookie1(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/cookie", nil)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
-
 			So(w.Code, ShouldEqual, http.StatusOK)
-			So(w.Header().Get("set-cookie"), ShouldEqual, "name=baa; Path=/")
+			So(w.Header().Get("set-cookie"), ShouldContainSubstring, "name=baa;")
 		})
 	})
+}
+
+func TestContextWrite1(t *testing.T) {
+	Convey("context writer", t, func() {
+		Convey("write string", func() {
+			b.Get("/writer", func(c *Context) {
+				c.String(200, "abc\n")
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=string", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write byte", func() {
+			b.Get("/writer", func(c *Context) {
+				c.Text(200, []byte("abc\n"))
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=byte", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write JSON", func() {
+			b.Get("/writer", func(c *Context) {
+				data := map[string]interface{}{"a": "1"}
+				c.JSON(200, data)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=json", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write JSONString", func() {
+			b.Get("/writer", func(c *Context) {
+				data := map[string]interface{}{"a": "1"}
+				str, _ := c.JSONString(data)
+				c.String(200, str)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=jsonstring", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write JSONP", func() {
+			b.Get("/writer", func(c *Context) {
+				data := map[string]interface{}{"a": "1"}
+				callback := c.Query("callback")
+				c.JSONP(200, callback, data)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=jsonp&callback=callback", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write XML", func() {
+			b.Get("/writer", func(c *Context) {
+				type XmlNode struct {
+					XMLName xml.Name `xml:"item"`
+					Name    string   `xml:"name"`
+					ID      int      `xml:"id,attr"`
+					Addr    string   `xml:"adr"`
+				}
+				data := &XmlNode{Name: "baa", ID: 1, Addr: "beijing"}
+				c.XML(200, data)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=xml", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+	})
+}
+
+func TestContextWrite2(t *testing.T) {
+	Convey("context writer without debug mode", t, func() {
+        b.SetDebug(false)
+		Convey("write JSON", func() {
+			b.Get("/writer", func(c *Context) {
+				data := map[string]interface{}{"a": "1"}
+				c.JSON(200, data)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=json", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write JSONString", func() {
+			b.Get("/writer", func(c *Context) {
+				data := map[string]interface{}{"a": "1"}
+				str, _ := c.JSONString(data)
+				c.String(200, str)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=jsonstring", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write JSONP", func() {
+			b.Get("/writer", func(c *Context) {
+				data := map[string]interface{}{"a": "1"}
+				callback := c.Query("callback")
+				c.JSONP(200, callback, data)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=jsonp&callback=callback", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("write XML", func() {
+			b.Get("/writer", func(c *Context) {
+				type XmlNode struct {
+					XMLName xml.Name `xml:"item"`
+					Name    string   `xml:"name"`
+					ID      int      `xml:"id,attr"`
+					Addr    string   `xml:"adr"`
+				}
+				data := &XmlNode{Name: "baa", ID: 1, Addr: "beijing"}
+				c.XML(200, data)
+			})
+			req, _ := http.NewRequest("GET", "/writer?type=xml", nil)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+	})
+    b.SetDebug(true)
+}
+
+func TestContextIP1(t *testing.T) {
+	Convey("get remote addr", t, func() {
+		b.Get("/ip", func(c *Context) {
+			ip := c.RemoteAddr()
+			So(ip, ShouldNotBeEmpty)
+		})
+		req, _ := http.NewRequest("GET", "/ip", nil)
+		req.Header.Set("X-Forwarded-For", "127.0.0.1")
+		w := httptest.NewRecorder()
+		b.ServeHTTP(w, req)
+		So(w.Code, ShouldEqual, http.StatusOK)
+	})
+}
+
+func TestContextBaa1(t *testing.T) {
+	Convey("get baa", t, func() {
+		Convey("get baa", func() {
+			So(c.Baa(), ShouldNotBeNil)
+		})
+		Convey("get di", func() {
+			logger := c.DI("logger")
+			_, ok := logger.(Logger)
+			So(ok, ShouldBeTrue)
+		})
+	})
+}
+
+// newfileUploadRequest Creates a new file upload http request with optional extra params
+func newfileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+
+	for key, val := range params {
+		_ = writer.WriteField(key, val)
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", uri, body)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	return req, err
 }

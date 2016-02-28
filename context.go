@@ -6,17 +6,20 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html/template"
+	"io"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
 
 const (
-	// MaxMemory Maximum amount of memory to use when parsing a multipart form.
-	// Set this to whatever value you prefer; default is 10 MB.
-	MaxMemory = int64(1024 * 1024 * 10)
+	// defaultMaxMemory Maximum amount of memory to use when parsing a multipart form.
+	// Set this to whatever value you prefer; default is 32 MB.
+	defaultMaxMemory = 32 << 20 // 32 MB
 
 	// Charset
 
@@ -45,7 +48,6 @@ const (
 	ApplicationXMLCharsetUTF8        = ApplicationXML + "; " + CharsetUTF8
 	ApplicationForm                  = "application/x-www-form-urlencoded"
 	ApplicationProtobuf              = "application/protobuf"
-	ApplicationMsgpack               = "application/msgpack"
 	TextHTML                         = "text/html"
 	TextHTMLCharsetUTF8              = TextHTML + "; " + CharsetUTF8
 	TextPlain                        = "text/plain"
@@ -230,7 +232,11 @@ func (c *Context) Querys() map[string]interface{} {
 func (c *Context) Posts() map[string]interface{} {
 	c.parseForm()
 	params := make(map[string]interface{})
-	for k, v := range c.Req.PostForm {
+	data := c.Req.PostForm
+	if len(data) == 0 && len(c.Req.Form) > 0 {
+		data = c.Req.Form
+	}
+	for k, v := range data {
 		if len(v) > 1 {
 			params[k] = v
 		} else {
@@ -238,6 +244,29 @@ func (c *Context) Posts() map[string]interface{} {
 		}
 	}
 	return params
+}
+
+// GetFile returns information about user upload file by given form field name.
+func (c *Context) GetFile(name string) (multipart.File, *multipart.FileHeader, error) {
+	return c.Req.FormFile(name)
+}
+
+// SaveToFile reads a file from request by field name and saves to given path.
+func (c *Context) SaveToFile(name, savePath string) error {
+	fr, _, err := c.GetFile(name)
+	if err != nil {
+		return err
+	}
+	defer fr.Close()
+
+	fw, err := os.OpenFile(savePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+
+	_, err = io.Copy(fw, fr)
+	return err
 }
 
 // SetCookie sets given cookie value to response header.
@@ -473,7 +502,7 @@ func (c *Context) parseForm() {
 	contentType := c.Req.Header.Get(ContentType)
 	if (c.Req.Method == "POST" || c.Req.Method == "PUT") &&
 		len(contentType) > 0 && strings.Contains(contentType, MultipartForm) {
-		c.Req.ParseMultipartForm(MaxMemory)
+		c.Req.ParseMultipartForm(defaultMaxMemory)
 	} else {
 		c.Req.ParseForm()
 	}

@@ -154,7 +154,7 @@ func TestRouteMatch1(t *testing.T) {
 }
 
 func TestRoutePrint1(t *testing.T) {
-	Convey("print route table\n", t, func() {
+	Convey("print route table", t, func() {
 		r.print("", nil)
 	})
 }
