@@ -356,7 +356,7 @@ func TestContextWrite1(t *testing.T) {
 
 func TestContextWrite2(t *testing.T) {
 	Convey("context writer without debug mode", t, func() {
-        b.SetDebug(false)
+		b.SetDebug(false)
 		Convey("write JSON", func() {
 			b.Get("/writer", func(c *Context) {
 				data := map[string]interface{}{"a": "1"}
@@ -406,7 +406,7 @@ func TestContextWrite2(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 	})
-    b.SetDebug(true)
+	b.SetDebug(true)
 }
 
 func TestContextIP1(t *testing.T) {
