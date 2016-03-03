@@ -48,7 +48,7 @@ func main() {
 
 ### Route Test
 
-Based on [go-http-routing-benchmark] (https://github.com/julienschmidt/go-http-routing-benchmark), Feb 27, 2016.
+Based on [go-http-routing-benchmark] (https://github.com/safeie/go-http-routing-benchmark), Feb 27, 2016.
 
 ##### [GitHub API](http://developer.github.com/v3)
 
