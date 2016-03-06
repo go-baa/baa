@@ -55,7 +55,6 @@ func New() *Baa {
 	}
 	b.di = newDI()
 	b.router = newRouter()
-	b.errorHandler = b.DefaultErrorHandler
 	b.notFoundHandler = b.DefaultNotFoundHandler
 	b.SetDI("logger", log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDI("render", newRender())
@@ -243,20 +242,11 @@ func (b *Baa) NotFound(h HandlerFunc) {
 
 // Error execute internal error handler
 func (b *Baa) Error(err error, c *Context) {
+	b.Logger().Println("Conext Error ->" + err.Error())
 	if b.errorHandler != nil {
 		b.errorHandler(err, c)
 		return
 	}
-	if b.debug {
-		http.Error(c.Resp, err.Error(), http.StatusInternalServerError)
-	} else {
-		http.Error(c.Resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-	b.Logger().Println("Conext Error ->" + err.Error())
-}
-
-// DefaultErrorHandler invokes the default HTTP error handler.
-func (b *Baa) DefaultErrorHandler(err error, c *Context) {
 	code := http.StatusInternalServerError
 	msg := http.StatusText(code)
 	if b.debug {

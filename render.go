@@ -22,8 +22,7 @@ func (r *Render) Render(w io.Writer, tpl string, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	t.Execute(w, data)
-	return nil
+	return t.Execute(w, data)
 }
 
 // parseFile ...
