@@ -456,6 +456,35 @@ func TestContextIP1(t *testing.T) {
 	})
 }
 
+func TestContext2(t *testing.T) {
+	Convey("request methods", t, func() {
+		Convey("Referer, UserAgent, IsMobile", func() {
+			b.Get("/req", func(c *Context) {
+				c.Referer()
+				c.UserAgent()
+				isMobile := c.IsMobile()
+				So(isMobile, ShouldBeTrue)
+			})
+			req, _ := http.NewRequest("GET", "/req", nil)
+			req.Header.Set("User-Agent", "Mozilla/5.0 (iPod; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1")
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("IsMobile false", func() {
+			b.Get("/req", func(c *Context) {
+				isMobile := c.IsMobile()
+				So(isMobile, ShouldBeFalse)
+			})
+			req, _ := http.NewRequest("GET", "/req", nil)
+			req.Header.Set("User-Agent", "Mozilla/5.0 Version/9.0 Mobile/13B143 Safari/601.1")
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+	})
+}
+
 func TestContextBaa1(t *testing.T) {
 	Convey("get baa", t, func() {
 		Convey("get baa", func() {

@@ -65,6 +65,10 @@ func TestServeHTTP1(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusNotFound)
 		})
 		Convey("error serve", func() {
+			b.SetError(func(err error, c *Context) {
+				c.Resp.WriteHeader(500)
+				c.Resp.Write([]byte(err.Error()))
+			})
 			b.Get("/error", func(c *Context) {
 				c.Error(fmt.Errorf("BOMB"))
 			})

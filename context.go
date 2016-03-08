@@ -494,6 +494,27 @@ func (c *Context) RemoteAddr() string {
 	return addr
 }
 
+// Referer returns http request Referer
+func (c *Context) Referer() string {
+	return c.Req.Header.Get("Referer")
+}
+
+// UserAgent returns http request UserAgent
+func (c *Context) UserAgent() string {
+	return c.Req.Header.Get("User-Agent")
+}
+
+// IsMobile returns if it is a mobile phone device request
+func (c *Context) IsMobile() bool {
+	userAgent := c.UserAgent()
+	for _, v := range []string{"iPhone", "iPod", "Android"} {
+		if strings.Contains(userAgent, v) {
+			return true
+		}
+	}
+	return false
+}
+
 // parseForm ...
 func (c *Context) parseForm() {
 	if c.Req.Form != nil {

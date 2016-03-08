@@ -242,9 +242,14 @@ func (b *Baa) NotFound(h HandlerFunc) {
 	b.notFoundHandler = h
 }
 
+// SetError set error handler
+func (b *Baa) SetError(h ErrorHandleFunc) {
+	b.errorHandler = h
+}
+
 // Error execute internal error handler
 func (b *Baa) Error(err error, c *Context) {
-	b.Logger().Println("Conext Error ->" + err.Error())
+	b.Logger().Println("Context Error -> " + err.Error())
 	if b.errorHandler != nil {
 		b.errorHandler(err, c)
 		return
