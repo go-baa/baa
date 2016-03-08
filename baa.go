@@ -125,6 +125,11 @@ func (b *Baa) SetDebug(v bool) {
 	b.debug = v
 }
 
+// Debug returns baa debug state
+func (b *Baa) Debug() bool {
+	return b.debug
+}
+
 // Logger return baa logger
 func (b *Baa) Logger() Logger {
 	return b.GetDI("logger").(Logger)

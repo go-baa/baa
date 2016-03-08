@@ -91,6 +91,7 @@ func TestServeHTTP1(t *testing.T) {
 			b2.errorHandler = nil
 			b2.SetDebug(false)
 			b2.Get("/error", func(c *Context) {
+				b2.Debug()
 				c.Error(fmt.Errorf("BOMB"))
 			})
 			req, _ := http.NewRequest("GET", "/error", nil)
