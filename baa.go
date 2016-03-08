@@ -21,6 +21,7 @@ const (
 type Baa struct {
 	debug           bool
 	name            string
+	Env             string
 	di              *DI
 	router          *Router
 	pool            sync.Pool
@@ -50,7 +51,8 @@ func New() *Baa {
 			return newContext(nil, nil, b)
 		},
 	}
-	if os.Getenv("Baa.Env") != PROD {
+	b.Env = os.Getenv("Baa.Env")
+	if b.Env != PROD {
 		b.debug = true
 	}
 	b.di = newDI()
