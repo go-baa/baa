@@ -35,7 +35,7 @@ func main() {
 * whichever template engine support(emplement baa.Renderer)
 
 
-## Middleware
+## Middlewares
 
 * [gzip](https://github.com/baa-middleware/gzip)
 * [logger](https://github.com/baa-middleware/logger)
@@ -43,6 +43,10 @@ func main() {
 * [render](https://github.com/baa-middleware/render)
 * [session](https://github.com/baa-middleware/session)
 
+## Components
+
+* [cache](https://github.com/go-baa/cache)
+* [render](https://github.com/go-baa/render)
 
 ## Performance
 
