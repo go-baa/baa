@@ -40,7 +40,6 @@ func main() {
 * [gzip](https://github.com/baa-middleware/gzip)
 * [logger](https://github.com/baa-middleware/logger)
 * [recovery](https://github.com/baa-middleware/recovery)
-* [render](https://github.com/baa-middleware/render)
 * [session](https://github.com/baa-middleware/session)
 
 ## Components
