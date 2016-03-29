@@ -269,6 +269,11 @@ func (c *Context) SaveToFile(name, savePath string) error {
 	return err
 }
 
+// Body get raw request body and return RequestBody
+func (c *Context) Body() *RequestBody {
+	return NewRequestBody(c.Req.Body)
+}
+
 // SetCookie sets given cookie value to response header.
 // full params example:
 // SetCookie(<name>, <value>, <max age>, <path>, <domain>, <secure>, <http only>)
