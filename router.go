@@ -110,6 +110,15 @@ func (r *Router) urlFor(name string, args ...interface{}) string {
 	return fmt.Sprintf(url, args...)
 }
 
+// methods returns all support methods
+func (r *Router) methods() []string {
+	var ms []string
+	for m := range methods {
+		ms = append(ms, m)
+	}
+	return ms
+}
+
 // groupAdd add a group route has same prefix and handle chain
 func (r *Router) groupAdd(pattern string, f func(), handlers []HandlerFunc) {
 	g := newGroup()

@@ -184,7 +184,13 @@ func (b *Baa) SetAutoHead(v bool) {
 // 		baa.route("/", "GET,POST", h)
 func (b *Baa) Route(pattern, methods string, h ...HandlerFunc) *Route {
 	var ru *Route
-	for _, m := range strings.Split(methods, ",") {
+	var ms []string
+	if methods == "*" {
+		ms = b.router.methods()
+	} else {
+		ms = strings.Split(methods, ",")
+	}
+	for _, m := range ms {
 		ru = b.router.add(strings.TrimSpace(m), pattern, h)
 	}
 	return ru
@@ -195,7 +201,7 @@ func (b *Baa) Group(pattern string, f func(), h ...HandlerFunc) {
 	b.router.groupAdd(pattern, f, h)
 }
 
-// Get is a shortcut for b.router.handle("GET", pattern, handlers)
+// Get is a shortcut for b.router.add("GET", pattern, handlers)
 func (b *Baa) Get(pattern string, h ...HandlerFunc) *Route {
 	rs := b.router.add("GET", pattern, h)
 	if b.router.autoHead {
@@ -204,40 +210,40 @@ func (b *Baa) Get(pattern string, h ...HandlerFunc) *Route {
 	return rs
 }
 
-// Patch is a shortcut for b.router.handle("PATCH", pattern, handlers)
+// Patch is a shortcut for b.router.add("PATCH", pattern, handlers)
 func (b *Baa) Patch(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("PATCH", pattern, h)
 }
 
-// Post is a shortcut for b.router.handle("POST", pattern, handlers)
+// Post is a shortcut for b.router.add("POST", pattern, handlers)
 func (b *Baa) Post(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("POST", pattern, h)
 }
 
-// Put is a shortcut for b.router.handle("PUT", pattern, handlers)
+// Put is a shortcut for b.router.add("PUT", pattern, handlers)
 func (b *Baa) Put(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("PUT", pattern, h)
 }
 
-// Delete is a shortcut for b.router.handle("DELETE", pattern, handlers)
+// Delete is a shortcut for b.router.add("DELETE", pattern, handlers)
 func (b *Baa) Delete(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("DELETE", pattern, h)
 }
 
-// Options is a shortcut for b.router.handle("OPTIONS", pattern, handlers)
+// Options is a shortcut for b.router.add("OPTIONS", pattern, handlers)
 func (b *Baa) Options(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("OPTIONS", pattern, h)
 }
 
-// Head is a shortcut for b.router.handle("HEAD", pattern, handlers)
+// Head is a shortcut for b.router.add("HEAD", pattern, handlers)
 func (b *Baa) Head(pattern string, h ...HandlerFunc) *Route {
 	return b.router.add("HEAD", pattern, h)
 }
 
-// Any is a shortcut for b.router.handle("*", pattern, handlers)
+// Any is a shortcut for b.router.add("*", pattern, handlers)
 func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
 	var ru *Route
-	for m := range methods {
+	for _, m := range b.router.methods() {
 		ru = b.router.add(m, pattern, h)
 	}
 	return ru
