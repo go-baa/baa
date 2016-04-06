@@ -10,7 +10,7 @@ baa is ``no reflect``, ``no regexp``.
 package main
 
 import (
-    "github.com/go-baa/baa"
+    "gopkg.in/baa.v1"
 )
 
 func main() {
@@ -83,7 +83,7 @@ package main
 import (
 	"github.com/baa-middleware/logger"
 	"github.com/baa-middleware/recovery"
-	"github.com/go-baa/baa"
+	"gopkg.in/baa.v1"
 )
 
 func hello(c *baa.Context) {
