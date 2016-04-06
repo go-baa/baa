@@ -308,4 +308,7 @@ func wrapMiddleware(m Middleware) HandlerFunc {
 
 func init() {
 	Env = os.Getenv("BAA_ENV")
+	if Env == "" {
+		Env = DEV
+	}
 }
