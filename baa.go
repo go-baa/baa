@@ -17,11 +17,13 @@ const (
 	TEST = "test"
 )
 
+// Env default application runtime environment
+var Env string
+
 // Baa provlider an application
 type Baa struct {
 	debug           bool
 	name            string
-	Env             string
 	di              *DI
 	router          *Router
 	pool            sync.Pool
@@ -51,8 +53,7 @@ func New() *Baa {
 			return newContext(nil, nil, b)
 		},
 	}
-	b.Env = os.Getenv("Baa.Env")
-	if b.Env != PROD {
+	if Env != PROD {
 		b.debug = true
 	}
 	b.di = newDI()
@@ -297,4 +298,8 @@ func wrapMiddleware(m Middleware) HandlerFunc {
 	default:
 		panic("unknown middleware")
 	}
+}
+
+func init() {
+	Env = os.Getenv("BAA_ENV")
 }
