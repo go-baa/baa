@@ -540,6 +540,7 @@ func (c *Context) parseForm() {
 // last execute route handler
 func (c *Context) Next() {
 	if c.Resp.Wrote() || c.hi >= len(c.handlers) {
+		c.baa.Logger().Println("Warning: content has been written, handle chain break.")
 		return
 	}
 	i := c.hi
