@@ -2,6 +2,7 @@ package baa
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -126,6 +127,29 @@ func TestServeHTTP1(t *testing.T) {
 			w := httptest.NewRecorder()
 			b2.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+		Convey("Break middleware chain", func() {
+			b2 := New()
+			b2.Use(func(c *Context) {
+				c.String(200, "ok1")
+				c.Break()
+				c.Next()
+			})
+			b2.Use(func(c *Context) {
+				c.String(200, "ok2")
+				c.Break()
+				c.Next()
+			})
+			b2.Get("/ok", func(c *Context) {
+				c.String(200, "ok")
+			})
+			req, _ := http.NewRequest("GET", "/ok", nil)
+			w := httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			body, err := ioutil.ReadAll(w.Body)
+			So(err, ShouldBeNil)
+			So(string(body), ShouldEqual, "ok1")
 		})
 		Convey("Unknow Middleware", func() {
 			b2 := New()

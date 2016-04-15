@@ -25,19 +25,6 @@ const (
 
 	CharsetUTF8 = "charset=utf-8"
 
-	// Headers
-
-	AcceptEncoding     = "Accept-Encoding"
-	Authorization      = "Authorization"
-	ContentDisposition = "Content-Disposition"
-	ContentEncoding    = "Content-Encoding"
-	ContentLength      = "Content-Length"
-	ContentType        = "Content-Type"
-	Location           = "Location"
-	Upgrade            = "Upgrade"
-	Vary               = "Vary"
-	WWWAuthenticate    = "WWW-Authenticate"
-
 	// MediaTypes
 
 	ApplicationJSON                  = "application/json"
@@ -362,14 +349,14 @@ func (c *Context) GetCookieBool(name string) bool {
 
 // String write text by string
 func (c *Context) String(code int, s string) {
-	c.Resp.Header().Set(ContentType, TextPlainCharsetUTF8)
+	c.Resp.Header().Set("Content-Type", TextPlainCharsetUTF8)
 	c.Resp.WriteHeader(code)
 	c.Resp.Write([]byte(s))
 }
 
 // Text write text by []byte
 func (c *Context) Text(code int, s []byte) {
-	c.Resp.Header().Set(ContentType, TextHTMLCharsetUTF8)
+	c.Resp.Header().Set("Content-Type", TextHTMLCharsetUTF8)
 	c.Resp.WriteHeader(code)
 	c.Resp.Write(s)
 }
@@ -388,7 +375,7 @@ func (c *Context) JSON(code int, v interface{}) {
 		return
 	}
 
-	c.Resp.Header().Set(ContentType, ApplicationJSONCharsetUTF8)
+	c.Resp.Header().Set("Content-Type", ApplicationJSONCharsetUTF8)
 	c.Resp.WriteHeader(code)
 	c.Resp.Write(re)
 }
@@ -416,7 +403,7 @@ func (c *Context) JSONP(code int, callback string, v interface{}) {
 		return
 	}
 
-	c.Resp.Header().Set(ContentType, ApplicationJavaScriptCharsetUTF8)
+	c.Resp.Header().Set("Content-Type", ApplicationJavaScriptCharsetUTF8)
 	c.Resp.WriteHeader(code)
 	c.Resp.Write([]byte(callback + "("))
 	c.Resp.Write(re)
@@ -437,7 +424,7 @@ func (c *Context) XML(code int, v interface{}) {
 		return
 	}
 
-	c.Resp.Header().Set(ContentType, ApplicationXMLCharsetUTF8)
+	c.Resp.Header().Set("Content-Type", ApplicationXMLCharsetUTF8)
 	c.Resp.WriteHeader(code)
 	c.Resp.Write([]byte(xml.Header))
 	c.Resp.Write(re)
@@ -451,7 +438,7 @@ func (c *Context) HTML(code int, tpl string) {
 
 // Render write render data by html template engine use context.store
 func (c *Context) Render(code int, tpl string) {
-	c.Resp.Header().Set(ContentType, TextHTMLCharsetUTF8)
+	c.Resp.Header().Set("Content-Type", TextHTMLCharsetUTF8)
 	c.Resp.WriteHeader(code)
 	re, err := c.Fetch(tpl)
 	if err != nil {
@@ -525,7 +512,7 @@ func (c *Context) parseForm() {
 	if c.Req.Form != nil {
 		return
 	}
-	contentType := c.Req.Header.Get(ContentType)
+	contentType := c.Req.Header.Get("Content-Type")
 	if (c.Req.Method == "POST" || c.Req.Method == "PUT") &&
 		len(contentType) > 0 && strings.Contains(contentType, MultipartForm) {
 		c.Req.ParseMultipartForm(defaultMaxMemory)
@@ -534,21 +521,20 @@ func (c *Context) parseForm() {
 	}
 }
 
-// Next execute next middleware
-// if something wrote to http, break chain and return
-// handle middleware first
-// last execute route handler
+// Next execute next handler
+// handle middleware first, last execute route handler
 func (c *Context) Next() {
-	if c.Resp.Wrote() {
-		c.baa.Logger().Println("Warning: content has been written, handle chain break.")
-		return
-	}
 	if c.hi >= len(c.handlers) {
 		return
 	}
 	i := c.hi
 	c.hi++
 	c.handlers[i](c)
+}
+
+// Break break the handles chain and Immediate return
+func (c *Context) Break() {
+	c.hi = len(c.handlers)
 }
 
 // Error invokes the registered HTTP error handler. Generally used by middleware.
