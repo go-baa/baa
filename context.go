@@ -539,8 +539,11 @@ func (c *Context) parseForm() {
 // handle middleware first
 // last execute route handler
 func (c *Context) Next() {
-	if c.Resp.Wrote() || c.hi >= len(c.handlers) {
+	if c.Resp.Wrote() {
 		c.baa.Logger().Println("Warning: content has been written, handle chain break.")
+		return
+	}
+	if c.hi >= len(c.handlers) {
 		return
 	}
 	i := c.hi
