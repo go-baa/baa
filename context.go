@@ -496,6 +496,35 @@ func (c *Context) UserAgent() string {
 	return c.Req.Header.Get("User-Agent")
 }
 
+// URL returns http request full url
+func (c *Context) URL(hasQuery bool) string {
+	scheme := c.Req.URL.Scheme
+	host := c.Req.URL.Host
+	if scheme == "" {
+		if c.Req.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+	if host == "" {
+		host = c.Req.Host
+	}
+	if len(host) > 0 {
+		if host[0] == ':' {
+			//
+		} else if host[0] == '/' {
+			scheme += ":"
+		} else {
+			scheme += "://"
+		}
+	}
+	if hasQuery {
+		return scheme + host + c.Req.RequestURI
+	}
+	return scheme + host + c.Req.URL.Path
+}
+
 // IsMobile returns if it is a mobile phone device request
 func (c *Context) IsMobile() bool {
 	userAgent := c.UserAgent()
