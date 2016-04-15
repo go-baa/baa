@@ -134,6 +134,9 @@ func TestRouteAdd9(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("set multi method", func() {
+			b2.Route("/mul", "*", func(c *Context) {
+				c.String(200, "mul")
+			})
 			b2.Route("/mul", "GET,HEAD,POST", func(c *Context) {
 				c.String(200, "mul")
 			})

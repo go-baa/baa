@@ -482,6 +482,14 @@ func TestContext2(t *testing.T) {
 			b.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
+		Convey("Get URL", func() {
+			b.Get("/url", func(c *Context) {
+				So(c.URL(false), ShouldEqual, "/url")
+				So(c.URL(true), ShouldEqual, "/url?id=xx&ib=yy")
+			})
+			w := request("GET", "/url?id=xx&ib=yy")
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
 	})
 }
 

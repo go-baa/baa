@@ -518,9 +518,18 @@ func (c *Context) URL(hasQuery bool) string {
 		} else {
 			scheme += "://"
 		}
+	} else {
+		scheme = ""
 	}
 	if hasQuery {
-		return scheme + host + c.Req.RequestURI
+		url := c.Req.RequestURI
+		if url == "" {
+			url = c.Req.URL.Path
+			if len(c.Req.URL.RawQuery) > 0 {
+				url += "?" + c.Req.URL.RawQuery
+			}
+		}
+		return scheme + host + url
 	}
 	return scheme + host + c.Req.URL.Path
 }
