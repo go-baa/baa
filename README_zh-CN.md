@@ -1,19 +1,18 @@
 # [Baa](http://go-baa.github.io/baa) [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/go-baa/baa) [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/go-baa/baa/master/LICENSE) [![Build Status](http://img.shields.io/travis/go-baa/baa.svg?style=flat-square)](https://travis-ci.org/go-baa/baa) [![Coverage Status](http://img.shields.io/coveralls/go-baa/baa.svg?style=flat-square)](https://coveralls.io/r/go-baa/baa)
 
-an express Go web framework with routing, middleware, dependency injection, http context. 
+一个简单高效的Go web开发框架。主要有路由、中间件，依赖注入和HTTP上下文构成。
 
-Baa is ``no reflect``, ``no regexp``.
+Baa 不使用 ``反射``和``正则``，没有魔法的实现。
 
-## Getting Started
+## 快速上手
 
-
-Install:
+安装：
 
 ```
 go get -u gopkg.in/baa.v1
 ```
 
-Example:
+示例：
 
 ```
 package main
@@ -31,46 +30,45 @@ func main() {
 }
 ```
 
-## Features
+## 特性
 
-* route support static, param, group
-* route support handler chain
-* route support static file serve
-* middleware supoort handle chain
-* dependency injection support*
-* context support JSON/JSONP/XML/HTML response
-* centralized HTTP error handling
-* centralized log handling
-* whichever template engine support(emplement baa.Renderer)
+* 支持静态路由、参数路由、组路由（前缀路由/命名空间）和路由命名
+* 路由支持链式操作
+* 路由支持文件/目录服务
+* 支持中间件和链式操作
+* 支持依赖注入*
+* 支持JSON/JSONP/XML/HTML格式输出
+* 统一的HTTP错误处理
+* 统一的日志处理
+* 支持任意更换模板引擎（实现baa.Renderer接口即可）
 
-
-## Middlewares
+## 中间件
 
 * [gzip](https://github.com/baa-middleware/gzip)
 * [logger](https://github.com/baa-middleware/logger)
 * [recovery](https://github.com/baa-middleware/recovery)
 * [session](https://github.com/baa-middleware/session)
 
-## Components
+## 组件(DI)
 
 * [cache](https://github.com/go-baa/cache)
 * [render](https://github.com/go-baa/render)
 
-## Performance
+## 性能测试
 
-diff with the fast framework [Echo](https://github.com/labstack/echo)
+和快速的Echo框架对比 [Echo](https://github.com/labstack/echo)
 
-> Note：
+> 注意：
 
-[Echo](https://github.com/labstack/echo) use fasthttp in V2，here use [Echo V1](https://github.com/labstack/echo/releases/tag/v1.4) for test。
+[Echo](https://github.com/labstack/echo) 在V2版本中使用了fasthttp，我们这里使用 [Echo V1](https://github.com/labstack/echo/releases/tag/v1.4) 测试。
 
-### Route Test
+### 路由测试
 
-Based on [go-http-routing-benchmark] (https://github.com/safeie/go-http-routing-benchmark), Feb 27, 2016.
+使用 [go-http-routing-benchmark] (https://github.com/safeie/go-http-routing-benchmark) 测试, 2016-02-27 更新.
 
 ##### [GitHub API](http://developer.github.com/v3)
 
-> Baa route test is very close to Echo.
+> Baa的路由性能非常接近 Echo.
 
 ```
 BenchmarkBaa_GithubAll          	   30000	     50984 ns/op	       0 B/op	       0 allocs/op
@@ -84,9 +82,9 @@ BenchmarkMartini_GithubAll      	     300	   5680389 ns/op	  228216 B/op	    248
 BenchmarkRevel_GithubAll        	    1000	   1413894 ns/op	  337424 B/op	    5512 allocs/op
 ```
 
-### HTTP Test
+### HTTP测试
 
-#### Code
+#### 代码
 
 Baa:
 
@@ -144,9 +142,9 @@ func main() {
 }
 ```
 
-#### Result:
+#### 测试结果:
 
-> Baa http test is almost better than Echo.
+> Baa 在http中的表现还稍稍比 Echo 好一些。
 
 Baa:
 
@@ -177,20 +175,20 @@ Transfer/sec:      5.94MB
 ```
 
 
-## Use Cases
+## 案例
 
-vodjk private projects.
+目前使用在 健康一线 的私有项目中。
 
-## Guide
+## 手册
 
 [godoc](http://godoc.org/github.com/go-baa/baa)
 
 [document](#)
 
 
-## Credits
+## 贡献
 
-Get inspirations from [beego](https://github.com/astaxie/beego) [echo](https://github.com/labstack/echo) [macaron](https://github.com/go-macaron/macaron)
+Baa的灵感来自 [beego](https://github.com/astaxie/beego) [echo](https://github.com/labstack/echo) [macaron](https://github.com/go-macaron/macaron)
 
 - [safeie](https://github.com/safeie)、[micate](https://github.com/micate) - Author
 - [betty](https://github.com/betty3039) - Language Consultant
