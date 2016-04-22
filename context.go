@@ -561,8 +561,15 @@ func (c *Context) parseForm() {
 
 // Next execute next handler
 // handle middleware first, last execute route handler
+// if something wrote to http, break chain and return
 func (c *Context) Next() {
 	if c.hi >= len(c.handlers) {
+		return
+	}
+	if c.Resp.Wrote() {
+		if c.baa.Debug() {
+			c.baa.Logger().Println("Warning: content has been written, handle chain break.")
+		}
 		return
 	}
 	i := c.hi
