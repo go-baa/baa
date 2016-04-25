@@ -144,7 +144,9 @@ func (b *Baa) Render() Renderer {
 // Use registers a middleware
 func (b *Baa) Use(m ...Middleware) {
 	for i := range m {
-		b.middleware = append(b.middleware, wrapMiddleware(m[i]))
+		if m[i] != nil {
+			b.middleware = append(b.middleware, wrapMiddleware(m[i]))
+		}
 	}
 }
 
