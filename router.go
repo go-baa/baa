@@ -181,7 +181,7 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 			param = param[:0]
 			k = 0
 			for i = i + 1; i < len(pattern); i++ {
-				if !isParamChar(pattern[i]) {
+				if pattern[i] == '/' {
 					i--
 					break
 				}
@@ -313,7 +313,7 @@ func (r *Router) match(method, pattern string, c *Context) *Route {
 			if len(root.children) == 0 {
 				i = l
 			} else {
-				for i = 0; i < l && isParamChar(pattern[i]); i++ {
+				for i = 0; i < l && pattern[i] != '/'; i++ {
 				}
 			}
 			c.SetParam(root.param, pattern[:i])
@@ -379,7 +379,7 @@ func (r *Route) Name(name string) {
 		p = append(p, '%')
 		p = append(p, 'v')
 		for i = i + 1; i < len(r.pattern); i++ {
-			if !isParamChar(r.pattern[i]) {
+			if r.pattern[i] == '/' {
 				i--
 				break
 			}
@@ -472,13 +472,4 @@ func wrapHandlerFunc(h HandlerFunc) HandlerFunc {
 		h(c)
 		c.Next()
 	}
-}
-
-// isParamChar check the char can used for route params
-// a-z->65:90, A-Z->97:122, 0-9->48->57, _->95, :->58
-func isParamChar(c byte) bool {
-	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 58) || c == 95 {
-		return true
-	}
-	return false
 }
