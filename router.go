@@ -137,12 +137,6 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 	if _, ok := methods[method]; !ok {
 		panic("unsupport http method [" + method + "]")
 	}
-	if pattern == "" {
-		panic("route pattern can not be emtpy!")
-	}
-	if pattern[0] != '/' {
-		panic("route pattern must begin /")
-	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -159,6 +153,14 @@ func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Rou
 		pattern = gpattern + pattern
 		ghandlers = append(ghandlers, handlers...)
 		handlers = ghandlers
+	}
+
+	// check pattern (for training slash move behind group check)
+	if pattern == "" {
+		panic("route pattern can not be emtpy!")
+	}
+	if pattern[0] != '/' {
+		panic("route pattern must begin /")
 	}
 
 	for i := 0; i < len(handlers); i++ {

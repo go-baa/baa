@@ -211,7 +211,7 @@ func (b *Baa) Group(pattern string, f func(), h ...HandlerFunc) {
 // Get is a shortcut for b.router.add("GET", pattern, handlers)
 func (b *Baa) Get(pattern string, h ...HandlerFunc) *Route {
 	// check trailing slash
-	if b.router.autoTrailingSlash && len(pattern) > 1 {
+	if b.router.autoTrailingSlash && len(pattern) > 0 {
 		if pattern[len(pattern)-1] == '/' {
 			pattern = pattern[:len(pattern)-1]
 		}
