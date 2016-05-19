@@ -133,6 +133,20 @@ func TestRouteAdd9(t *testing.T) {
 			b2.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
+		Convey("set auto training slash", func() {
+			b2.SetAutoTrailingSlash(true)
+			b2.Get("/slash", func(c *Context) {
+				So(c.Req.Method, ShouldEqual, "GET")
+			})
+			req, _ := http.NewRequest("GET", "/slash", nil)
+			w := httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+			req, _ = http.NewRequest("GET", "/slash/", nil)
+			w = httptest.NewRecorder()
+			b2.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
 		Convey("set multi method", func() {
 			b2.Route("/mul", "*", func(c *Context) {
 				c.String(200, "mul")

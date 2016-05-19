@@ -42,12 +42,13 @@ var methodKeys = map[string]int{
 
 // Router provlider router for baa
 type Router struct {
-	autoHead        bool
-	mu              sync.RWMutex
-	notFoundHandler HandlerFunc
-	groups          []*group
-	routeMap        [RouteLength]*Route
-	routeNamedMap   map[string]string
+	autoHead          bool
+	autoTrailingSlash bool
+	mu                sync.RWMutex
+	notFoundHandler   HandlerFunc
+	groups            []*group
+	routeMap          [RouteLength]*Route
+	routeNamedMap     map[string]string
 }
 
 // Route is a tree node

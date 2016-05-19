@@ -180,6 +180,11 @@ func (b *Baa) SetAutoHead(v bool) {
 	b.router.autoHead = v
 }
 
+// SetAutoTrailingSlash optional trailing slash.
+func (b *Baa) SetAutoTrailingSlash(v bool) {
+	b.router.autoTrailingSlash = v
+}
+
 // Route is a shortcut for same handlers but different HTTP methods.
 //
 // Example:
@@ -205,10 +210,22 @@ func (b *Baa) Group(pattern string, f func(), h ...HandlerFunc) {
 
 // Get is a shortcut for b.router.add("GET", pattern, handlers)
 func (b *Baa) Get(pattern string, h ...HandlerFunc) *Route {
+	// check trailing slash
+	if b.router.autoTrailingSlash && len(pattern) > 1 {
+		if pattern[len(pattern)-1] == '/' {
+			pattern = pattern[:len(pattern)-1]
+		}
+		b.router.add("GET", pattern+"/", h)
+		if b.router.autoHead {
+			b.router.add("HEAD", pattern+"/", h)
+		}
+	}
+
 	rs := b.router.add("GET", pattern, h)
 	if b.router.autoHead {
 		b.Head(pattern, h...)
 	}
+
 	return rs
 }
 
