@@ -136,10 +136,10 @@ func TestRouteAdd9(t *testing.T) {
 		})
 		Convey("set auto training slash", func() {
 			b2.SetAutoTrailingSlash(true)
-			b2.Get("/slash", func(c *Context){})
-			b2.Group("/slash2", func(){
-				b2.Get("/",func(c *Context){})
-				b2.Get("/exist", func(c *Context){})
+			b2.Get("/slash", func(c *Context) {})
+			b2.Group("/slash2", func() {
+				b2.Get("/", func(c *Context) {})
+				b2.Get("/exist", func(c *Context) {})
 			})
 			req, _ := http.NewRequest("GET", "/slash", nil)
 			w := httptest.NewRecorder()
