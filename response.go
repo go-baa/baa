@@ -2,6 +2,7 @@ package baa
 
 import (
 	"bufio"
+	"io"
 	"net"
 	"net/http"
 )
@@ -12,6 +13,7 @@ type Response struct {
 	written     int64 // number of bytes written in body
 	status      int   // status code passed to WriteHeader
 	resp        http.ResponseWriter
+	writer      io.Writer
 	baa         *Baa
 }
 
@@ -19,6 +21,7 @@ type Response struct {
 func NewResponse(w http.ResponseWriter, b *Baa) *Response {
 	r := new(Response)
 	r.resp = w
+	r.writer = w
 	r.baa = b
 	return r
 }
@@ -42,7 +45,7 @@ func (r *Response) Write(b []byte) (int, error) {
 	if !r.wroteHeader {
 		r.WriteHeader(http.StatusOK)
 	}
-	n, err := r.resp.Write(b)
+	n, err := r.writer.Write(b)
 	r.written += int64(n)
 	return n, err
 }
@@ -88,6 +91,7 @@ func (r *Response) CloseNotify() <-chan bool {
 // reset reuse response
 func (r *Response) reset(w http.ResponseWriter) {
 	r.resp = w
+	r.writer = w
 	r.wroteHeader = false
 	r.written = 0
 	r.status = http.StatusOK
@@ -106,4 +110,14 @@ func (r *Response) Size() int64 {
 // Wrote returns if writes something
 func (r *Response) Wrote() bool {
 	return r.wroteHeader
+}
+
+// GetWriter returns response io writer
+func (r *Response) GetWriter() io.Writer {
+	return r.writer
+}
+
+// SetWriter set response io writer
+func (r *Response) SetWriter(w io.Writer) {
+	r.writer = w
 }
