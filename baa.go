@@ -93,6 +93,7 @@ func (b *Baa) RunTLSServer(s *http.Server, crtFile, keyFile string) {
 
 func (b *Baa) run(s *http.Server, files ...string) {
 	s.Handler = b
+	b.Logger().Printf("Run mode: %s", Env)
 	if len(files) == 0 {
 		b.Logger().Printf("Listen %s", s.Addr)
 		b.Logger().Fatal(s.ListenAndServe())
