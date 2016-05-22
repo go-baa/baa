@@ -1,6 +1,7 @@
 package baa
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -268,9 +269,18 @@ func (b *Baa) Any(pattern string, h ...HandlerFunc) *Route {
 	return ru
 }
 
-// NotFound set not found route handler
-func (b *Baa) NotFound(h HandlerFunc) {
+// SetNotFound set not found route handler
+func (b *Baa) SetNotFound(h HandlerFunc) {
 	b.notFoundHandler = h
+}
+
+// NotFound execute not found handler
+func (b *Baa) NotFound(c *Context) {
+	if b.notFoundHandler != nil {
+		b.notFoundHandler(c)
+		return
+	}
+	http.NotFound(c.Resp, c.Req)
 }
 
 // SetError set error handler
@@ -280,7 +290,9 @@ func (b *Baa) SetError(h ErrorHandleFunc) {
 
 // Error execute internal error handler
 func (b *Baa) Error(err error, c *Context) {
-	b.Logger().Println("Context Error -> " + err.Error())
+	if err == nil {
+		err = errors.New("Internal Server Error")
+	}
 	if b.errorHandler != nil {
 		b.errorHandler(err, c)
 		return

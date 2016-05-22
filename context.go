@@ -582,9 +582,14 @@ func (c *Context) Break() {
 	c.hi = len(c.handlers)
 }
 
-// Error invokes the registered HTTP error handler. Generally used by middleware.
+// Error invokes the registered HTTP error handler.
 func (c *Context) Error(err error) {
 	c.baa.Error(err, c)
+}
+
+// NotFound invokes the registered HTTP NotFound handler.
+func (c *Context) NotFound() {
+	c.baa.NotFound(c)
 }
 
 // Baa get app instance

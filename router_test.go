@@ -192,7 +192,7 @@ func TestRouteAdd9(t *testing.T) {
 			b2.Options("/methods", f)
 			b2.Head("/methods", f)
 			b2.Any("/any", f)
-			b2.NotFound(func(c *Context) {
+			b2.SetNotFound(func(c *Context) {
 				c.String(404, "baa not found")
 			})
 		})

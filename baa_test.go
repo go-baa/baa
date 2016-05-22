@@ -62,7 +62,7 @@ func TestServeHTTP1(t *testing.T) {
 			b.Get("/notfound", func(c *Context) {
 				c.String(200, "ok")
 			})
-			w := request("GET", "/notfoundxx")
+			w := request("GET", "/notfound2")
 			So(w.Code, ShouldEqual, http.StatusNotFound)
 		})
 		Convey("error serve", func() {

@@ -490,6 +490,18 @@ func TestContext2(t *testing.T) {
 			w := request("GET", "/url?id=xx&ib=yy")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
+		Convey("occur error", func() {
+			b.Get("/error", func(c *Context) {
+				c.Error(nil)
+			})
+			b.Get("/notfound3", func(c *Context) {
+				c.NotFound()
+			})
+			w := request("GET", "/error")
+			So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			w = request("GET", "/notfound3")
+			So(w.Code, ShouldEqual, http.StatusNotFound)
+		})
 	})
 }
 
