@@ -45,6 +45,9 @@ type HandlerFunc func(*Context)
 // ErrorHandleFunc HTTP error handleFunc
 type ErrorHandleFunc func(error, *Context)
 
+// _defaultApp ...
+var _defaultApp *Baa
+
 // New create a baa application without any config.
 func New() *Baa {
 	b := new(Baa)
@@ -63,6 +66,14 @@ func New() *Baa {
 	b.SetDI("logger", log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDI("render", newRender())
 	return b
+}
+
+// Default initial a default app then returns
+func Default() *Baa {
+	if _defaultApp == nil {
+		_defaultApp = New()
+	}
+	return _defaultApp
 }
 
 // Server returns the internal *http.Server.
