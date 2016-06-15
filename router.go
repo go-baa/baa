@@ -120,6 +120,18 @@ func (r *Router) methods() []string {
 	return ms
 }
 
+// handle registers a new handle with the given method, pattern and handlers.
+// handle check training slash option.
+func (r *Router) handle(method, pattern string, handlers []HandlerFunc) *Route {
+	if r.autoTrailingSlash && (len(pattern) > 1 || len(r.groups) > 0) {
+		if pattern[len(pattern)-1] == '/' {
+			pattern = pattern[:len(pattern)-1]
+		}
+		r.add(method, pattern+"/", handlers)
+	}
+	return r.add(method, pattern, handlers)
+}
+
 // groupAdd add a group route has same prefix and handle chain
 func (r *Router) groupAdd(pattern string, f func(), handlers []HandlerFunc) {
 	g := newGroup()
@@ -132,11 +144,12 @@ func (r *Router) groupAdd(pattern string, f func(), handlers []HandlerFunc) {
 	r.groups = r.groups[:len(r.groups)-1]
 }
 
-// Handle registers a new request handle with the given pattern, method and handlers.
-func (r *Router) add(method string, pattern string, handlers []HandlerFunc) *Route {
+// add registers a new request handle with the given method, pattern and handlers.
+func (r *Router) add(method, pattern string, handlers []HandlerFunc) *Route {
 	if _, ok := methods[method]; !ok {
 		panic("unsupport http method [" + method + "]")
 	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
