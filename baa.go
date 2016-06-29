@@ -45,8 +45,11 @@ type HandlerFunc func(*Context)
 // ErrorHandleFunc HTTP error handleFunc
 type ErrorHandleFunc func(error, *Context)
 
-// _defaultApp ...
-var _defaultApp *Baa
+// appInstances storage application instances
+var appInstances map[string]*Baa
+
+// defaultAppName default application name
+const defaultAppName = "_default_"
 
 // New create a baa application without any config.
 func New() *Baa {
@@ -68,12 +71,21 @@ func New() *Baa {
 	return b
 }
 
+// Instance register or returns named application
+func Instance(name string) *Baa {
+	if name == "" {
+		name = defaultAppName
+	}
+	if appInstances[name] == nil {
+		appInstances[name] = New()
+		appInstances[name].name = defaultAppName
+	}
+	return appInstances[name]
+}
+
 // Default initial a default app then returns
 func Default() *Baa {
-	if _defaultApp == nil {
-		_defaultApp = New()
-	}
-	return _defaultApp
+	return Instance(defaultAppName)
 }
 
 // Server returns the internal *http.Server.
@@ -338,6 +350,7 @@ func wrapMiddleware(m Middleware) HandlerFunc {
 }
 
 func init() {
+	appInstances = make(map[string]*Baa)
 	Env = os.Getenv("BAA_ENV")
 	if Env == "" {
 		Env = DEV

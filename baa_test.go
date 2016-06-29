@@ -26,6 +26,13 @@ func TestNew1(t *testing.T) {
 		b2 := New()
 		So(b2, ShouldNotBeNil)
 	})
+	Convey("new instance app", t, func() {
+		b2 := Default()
+		b3 := Default()
+		b4 := Instance("new")
+		So(b2, ShouldEqual, b3)
+		So(b2, ShouldNotEqual, b4)
+	})
 }
 
 func TestRun1(t *testing.T) {
