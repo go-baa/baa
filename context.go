@@ -125,6 +125,11 @@ func (c *Context) ParamInt(name string) int {
 	return v
 }
 
+// ParamInt32 get route param from context and format to int32
+func (c *Context) ParamInt32(name string) int32 {
+	return int32(c.ParamInt64(name))
+}
+
 // ParamInt64 get route param from context and format to int64
 func (c *Context) ParamInt64(name string) int64 {
 	v, _ := strconv.ParseInt(c.Param(name), 10, 64)
@@ -175,6 +180,11 @@ func (c *Context) QueryInt(name string) int {
 	c.parseForm()
 	v, _ := strconv.Atoi(c.Req.Form.Get(name))
 	return v
+}
+
+// QueryInt32 get a param from http.Request.Form and format to int32
+func (c *Context) QueryInt32(name string) int32 {
+	return int32(c.QueryInt64(name))
 }
 
 // QueryInt64 get a param from http.Request.Form and format to int64
@@ -327,6 +337,11 @@ func (c *Context) GetCookie(name string) string {
 func (c *Context) GetCookieInt(name string) int {
 	v, _ := strconv.Atoi(c.GetCookie(name))
 	return v
+}
+
+// GetCookieInt32 returns cookie result in int32 type.
+func (c *Context) GetCookieInt32(name string) int32 {
+	return int32(c.GetCookieInt64(name))
 }
 
 // GetCookieInt64 returns cookie result in int64 type.

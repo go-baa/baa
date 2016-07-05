@@ -54,6 +54,16 @@ func TestContextParam1(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
+		Convey("param int32", func() {
+			b.Get("/context/:id", func(c *Context) {
+				id := c.ParamInt32("id")
+				So(id, ShouldEqual, 123)
+			})
+
+			w := request("GET", "/context/123")
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
 		Convey("param int64", func() {
 			b.Get("/context/:id", func(c *Context) {
 				id := c.ParamInt64("id")
@@ -118,6 +128,9 @@ func TestContextQuery1(t *testing.T) {
 				p = c.QueryInt("int")
 				So(p, ShouldEqual, 123)
 
+				p = c.QueryInt32("int32")
+				So(p, ShouldEqual, 123)
+
 				p = c.QueryInt64("int64")
 				So(p, ShouldEqual, 123)
 
@@ -144,6 +157,7 @@ func TestContextQuery1(t *testing.T) {
 			})
 			data := url.Values{}
 			data.Add("int", "123")
+			data.Add("int32", "123")
 			data.Add("int64", "123")
 			data.Add("float", "123.4")
 			data.Add("bool", "1")
@@ -233,6 +247,8 @@ func TestContextCookie1(t *testing.T) {
 				So(p, ShouldEqual, "123")
 				p = c.GetCookieInt("int")
 				So(p, ShouldEqual, 123)
+				p = c.GetCookieInt32("int32")
+				So(p, ShouldEqual, 123)
 				p = c.GetCookieInt64("int64")
 				So(p, ShouldEqual, 123)
 				p = c.GetCookieFloat64("float")
@@ -245,7 +261,7 @@ func TestContextCookie1(t *testing.T) {
 				So(p, ShouldEqual, "")
 			})
 			req, _ := http.NewRequest("GET", "/cookie", nil)
-			req.Header.Set("Cookie", "s=123; int=123; int64=123; float=123.4; bool=1; boo2=0;")
+			req.Header.Set("Cookie", "s=123; int=123; int32=123; int64=123; float=123.4; bool=1; boo2=0;")
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
 
