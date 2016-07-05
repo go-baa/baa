@@ -111,7 +111,7 @@ func (c *Context) SetParam(name, value string) {
 
 // Param get route param from context
 func (c *Context) Param(name string) string {
-	for i := 0; i < len(c.pNames); i++ {
+	for i := len(c.pNames) - 1; i >= 0; i-- {
 		if c.pNames[i] == name {
 			return c.pValues[i]
 		}
