@@ -490,7 +490,7 @@ func (c *Context) RemoteAddr() string {
 		return addr
 	}
 	addr = c.Req.Header.Get("X-Real-IP")
-	if len(addr) == 0 {
+	if addr == "" {
 		addr = c.Req.Header.Get("X-Forwarded-For")
 		if addr == "" {
 			addr = c.Req.RemoteAddr
