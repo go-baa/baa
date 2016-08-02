@@ -1,6 +1,7 @@
 package baa
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,59 +9,74 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestRouteAdd1(t *testing.T) {
+// print the route map
+func (t *Tree) print(prefix string, root *Leaf) {
+	if root == nil {
+		for m := range t.nodes {
+			fmt.Println(m)
+			t.print("", t.nodes[m])
+		}
+		return
+	}
+	fmt.Println(prefix + " -> " + root.pattern)
+	for i := range root.children {
+		t.print(prefix+" -> "+root.pattern, root.children[i])
+	}
+}
+
+func TestTreeRouteAdd1(t *testing.T) {
 	Convey("add static route", t, func() {
-		r.add("GET", "/", []HandlerFunc{f})
-		r.add("GET", "/bcd", []HandlerFunc{f})
-		r.add("GET", "/abcd", []HandlerFunc{f})
-		r.add("GET", "/abc", []HandlerFunc{f})
-		r.add("GET", "/abd", []HandlerFunc{f})
-		r.add("GET", "/abcdef", []HandlerFunc{f})
-		r.add("GET", "/bcdefg", []HandlerFunc{f})
-		r.add("GET", "/abc/123", []HandlerFunc{f})
-		r.add("GET", "/abc/234", []HandlerFunc{f})
-		r.add("GET", "/abc/125", []HandlerFunc{f})
-		r.add("GET", "/abc/235", []HandlerFunc{f})
-		r.add("GET", "/cbd/123", []HandlerFunc{f})
-		r.add("GET", "/cbd/234", []HandlerFunc{f})
-		r.add("GET", "/cbd/345", []HandlerFunc{f})
-		r.add("GET", "/cbd/456", []HandlerFunc{f})
-		r.add("GET", "/cbd/346", []HandlerFunc{f})
+		r.Add("GET", "/", []HandlerFunc{f})
+		r.Add("GET", "/bcd", []HandlerFunc{f})
+		r.Add("GET", "/abcd", []HandlerFunc{f})
+		r.Add("GET", "/abc", []HandlerFunc{f})
+		r.Add("GET", "/abd", []HandlerFunc{f})
+		r.Add("GET", "/abcdef", []HandlerFunc{f})
+		r.Add("GET", "/bcdefg", []HandlerFunc{f})
+		r.Add("GET", "/abc/123", []HandlerFunc{f})
+		r.Add("GET", "/abc/234", []HandlerFunc{f})
+		r.Add("GET", "/abc/125", []HandlerFunc{f})
+		r.Add("GET", "/abc/235", []HandlerFunc{f})
+		r.Add("GET", "/cbd/123", []HandlerFunc{f})
+		r.Add("GET", "/cbd/234", []HandlerFunc{f})
+		r.Add("GET", "/cbd/345", []HandlerFunc{f})
+		r.Add("GET", "/cbd/456", []HandlerFunc{f})
+		r.Add("GET", "/cbd/346", []HandlerFunc{f})
 	})
 }
 
-func TestRouteAdd2(t *testing.T) {
+func TestTreeRouteAdd2(t *testing.T) {
 	Convey("add param route", t, func() {
-		r.add("GET", "/", []HandlerFunc{f})
-		r.add("GET", "/a/:id/id", []HandlerFunc{f})
-		r.add("GET", "/a/:id/name", []HandlerFunc{f})
-		r.add("GET", "/a", []HandlerFunc{f})
-		r.add("GET", "/a/:id/", []HandlerFunc{f})
-		r.add("GET", "/a/", []HandlerFunc{f})
-		r.add("GET", "/a/*/xxx", []HandlerFunc{f})
-		r.add("GET", "/p/:project/file/:name", []HandlerFunc{f})
-		r.add("GET", "/cbd/:id", []HandlerFunc{f})
+		r.Add("GET", "/", []HandlerFunc{f})
+		r.Add("GET", "/a/:id/id", []HandlerFunc{f})
+		r.Add("GET", "/a/:id/name", []HandlerFunc{f})
+		r.Add("GET", "/a", []HandlerFunc{f})
+		r.Add("GET", "/a/:id/", []HandlerFunc{f})
+		r.Add("GET", "/a/", []HandlerFunc{f})
+		r.Add("GET", "/a/*/xxx", []HandlerFunc{f})
+		r.Add("GET", "/p/:project/file/:name", []HandlerFunc{f})
+		r.Add("GET", "/cbd/:id", []HandlerFunc{f})
 
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.add("GET", "/p/:/a", []HandlerFunc{f})
+		r.Add("GET", "/p/:/a", []HandlerFunc{f})
 	})
 }
 
-func TestRouteAdd3(t *testing.T) {
+func TestTreeRouteAdd3(t *testing.T) {
 	Convey("add param route with two different param", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.add("GET", "/a/:id", []HandlerFunc{f})
-		r.add("GET", "/a/:name", []HandlerFunc{f})
+		r.Add("GET", "/a/:id", []HandlerFunc{f})
+		r.Add("GET", "/a/:name", []HandlerFunc{f})
 	})
 }
 
-func TestRouteAdd4(t *testing.T) {
+func TestTreeRouteAdd4(t *testing.T) {
 	Convey("add route by group", t, func() {
 		b.Group("/user", func() {
 			b.Get("/info", f)
@@ -78,7 +94,7 @@ func TestRouteAdd4(t *testing.T) {
 	})
 }
 
-func TestRouteAdd5(t *testing.T) {
+func TestTreeRouteAdd5(t *testing.T) {
 	Convey("add route then set name, URLFor", t, func() {
 		b.Get("/article/:id/show", f).Name("articleShow")
 		b.Get("/article/:id/detail", f).Name("")
@@ -91,37 +107,37 @@ func TestRouteAdd5(t *testing.T) {
 	})
 }
 
-func TestRouteAdd6(t *testing.T) {
+func TestTreeRouteAdd6(t *testing.T) {
 	Convey("add route with not support method", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.add("TRACE", "/", []HandlerFunc{f})
+		r.Add("TRACE", "/", []HandlerFunc{f})
 	})
 }
 
-func TestRouteAdd7(t *testing.T) {
+func TestTreeRouteAdd7(t *testing.T) {
 	Convey("add route with empty pattern", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.add("GET", "", []HandlerFunc{f})
+		r.Add("GET", "", []HandlerFunc{f})
 	})
 }
 
-func TestRouteAdd8(t *testing.T) {
+func TestTreeRouteAdd8(t *testing.T) {
 	Convey("add route with pattern that not begin with /", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.add("GET", "abc", []HandlerFunc{f})
+		r.Add("GET", "abc", []HandlerFunc{f})
 	})
 }
 
-func TestRouteAdd9(t *testing.T) {
+func TestTreeRouteAdd9(t *testing.T) {
 	Convey("other route method", t, func() {
 		b2 := New()
 		Convey("set auto head route", func() {
@@ -199,43 +215,43 @@ func TestRouteAdd9(t *testing.T) {
 	})
 }
 
-func TestRouteMatch1(t *testing.T) {
+func TestTreeRouteMatch1(t *testing.T) {
 	Convey("match route", t, func() {
 
-		ru := r.match("GET", "/", c)
+		ru := r.Match("GET", "/", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.match("GET", "/abc/1234", c)
+		ru = r.Match("GET", "/abc/1234", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.match("GET", "xxx", c)
+		ru = r.Match("GET", "xxx", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.match("GET", "/a/123/id", c)
+		ru = r.Match("GET", "/a/123/id", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.match("GET", "/p/yst/file/a.jpg", c)
+		ru = r.Match("GET", "/p/yst/file/a.jpg", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.match("GET", "/user/info", c)
+		ru = r.Match("GET", "/user/info", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.match("GET", "/user/pass", c)
+		ru = r.Match("GET", "/user/pass", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.match("GET", "/user/pass32", c)
+		ru = r.Match("GET", "/user/pass32", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.match("GET", "/user/xxx", c)
+		ru = r.Match("GET", "/user/xxx", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.match("GET", "/xxxx", c)
+		ru = r.Match("GET", "/xxxx", c)
 		So(ru, ShouldBeNil)
 	})
 }
 
-func TestRoutePrint1(t *testing.T) {
+func TestTreeRoutePrint1(t *testing.T) {
 	Convey("print route table", t, func() {
-		r.print("", nil)
+		r.(*Tree).print("", nil)
 	})
 }

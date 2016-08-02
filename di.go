@@ -1,20 +1,26 @@
 package baa
 
+// DIer is an interface for baa dependency injection
+type DIer interface {
+	Set(name string, v interface{})
+	Get(name string) interface{}
+}
+
 // DI provlider a dependency injection service for baa
 type DI struct {
 	store map[string]interface{}
 }
 
 // newDI create a DI instance
-func newDI() *DI {
+func newDI() DIer {
 	d := new(DI)
 	d.store = make(map[string]interface{})
 	return d
 }
 
-// set register a di
+// Set register a di
 // baa dependency injection must be the special interface
-func (d *DI) set(name string, v interface{}) {
+func (d *DI) Set(name string, v interface{}) {
 	switch name {
 	case "logger":
 		if _, ok := v.(Logger); !ok {
@@ -28,7 +34,7 @@ func (d *DI) set(name string, v interface{}) {
 	d.store[name] = v
 }
 
-// get fetch a di by name, return nil when name not set.
-func (d *DI) get(name string) interface{} {
+// Get fetch a di by name, return nil when name not set.
+func (d *DI) Get(name string) interface{} {
 	return d.store[name]
 }
