@@ -63,11 +63,11 @@ func New() *Baa {
 	if Env != PROD {
 		b.debug = true
 	}
-	b.SetDIer(newDI())
-	b.SetRouter(newTree())
-	b.SetNotFound(b.DefaultNotFoundHandler)
+	b.SetDIer(NewDI())
+	b.SetDI("router", NewTree())
 	b.SetDI("logger", log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDI("render", newRender())
+	b.SetNotFound(b.DefaultNotFoundHandler)
 	return b
 }
 
@@ -133,7 +133,7 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.reset(w, r)
 
 	// build handler chain
-	route := b.router.Match(r.Method, r.URL.Path, c)
+	route := b.Router().Match(r.Method, r.URL.Path, c)
 	// notFound
 	if route == nil || route.Handlers() == nil {
 		c.handlers = append(c.handlers, b.notFoundHandler)
@@ -149,11 +149,6 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // SetDIer set baa di
 func (b *Baa) SetDIer(v DIer) {
 	b.di = v
-}
-
-// SetRouter set baa router
-func (b *Baa) SetRouter(r Router) {
-	b.router = r
 }
 
 // SetDebug set baa debug
@@ -176,6 +171,14 @@ func (b *Baa) Render() Renderer {
 	return b.GetDI("render").(Renderer)
 }
 
+// Router return baa router
+func (b *Baa) Router() Router {
+	if b.router == nil {
+		b.router = b.GetDI("router").(Router)
+	}
+	return b.router
+}
+
 // Use registers a middleware
 func (b *Baa) Use(m ...Middleware) {
 	for i := range m {
@@ -187,6 +190,20 @@ func (b *Baa) Use(m ...Middleware) {
 
 // SetDI registers a dependency injection
 func (b *Baa) SetDI(name string, h interface{}) {
+	switch name {
+	case "logger":
+		if _, ok := h.(Logger); !ok {
+			panic("DI logger must be implement interface baa.Logger")
+		}
+	case "render":
+		if _, ok := h.(Renderer); !ok {
+			panic("DI render must be implement interface baa.Renderer")
+		}
+	case "router":
+		if _, ok := h.(Router); !ok {
+			panic("DI router must be implement interface baa.Router")
+		}
+	}
 	b.di.Set(name, h)
 }
 
@@ -212,12 +229,12 @@ func (b *Baa) Static(prefix string, dir string, index bool, h HandlerFunc) {
 // SetAutoHead sets the value who determines whether add HEAD method automatically
 // when GET method is added. Combo router will not be affected by this value.
 func (b *Baa) SetAutoHead(v bool) {
-	b.router.SetAutoHead(v)
+	b.Router().SetAutoHead(v)
 }
 
 // SetAutoTrailingSlash optional trailing slash.
 func (b *Baa) SetAutoTrailingSlash(v bool) {
-	b.router.SetAutoTrailingSlash(v)
+	b.Router().SetAutoTrailingSlash(v)
 }
 
 // Route is a shortcut for same handlers but different HTTP methods.
@@ -235,58 +252,58 @@ func (b *Baa) Route(pattern, methods string, h ...HandlerFunc) RouteNode {
 		ms = strings.Split(methods, ",")
 	}
 	for _, m := range ms {
-		ru = b.router.Add(strings.TrimSpace(m), pattern, h)
+		ru = b.Router().Add(strings.TrimSpace(m), pattern, h)
 	}
 	return ru
 }
 
 // Group registers a list of same prefix route
 func (b *Baa) Group(pattern string, f func(), h ...HandlerFunc) {
-	b.router.GroupAdd(pattern, f, h)
+	b.Router().GroupAdd(pattern, f, h)
 }
 
-// Any is a shortcut for b.router.handle("*", pattern, handlers)
+// Any is a shortcut for b.Router().handle("*", pattern, handlers)
 func (b *Baa) Any(pattern string, h ...HandlerFunc) RouteNode {
 	var ru RouteNode
 	for m := range RouterMethods {
-		ru = b.router.Add(m, pattern, h)
+		ru = b.Router().Add(m, pattern, h)
 	}
 	return ru
 }
 
-// Delete is a shortcut for b.router.handle("DELETE", pattern, handlers)
+// Delete is a shortcut for b.Route(pattern, "DELETE", handlers)
 func (b *Baa) Delete(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("DELETE", pattern, h)
+	return b.Router().Add("DELETE", pattern, h)
 }
 
-// Get is a shortcut for b.router.handle("GET", pattern, handlers)
+// Get is a shortcut for b.Route(pattern, "GET", handlers)
 func (b *Baa) Get(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("GET", pattern, h)
+	return b.Router().Add("GET", pattern, h)
 }
 
-// Head is a shortcut for b.router.handle("HEAD", pattern, handlers)
+// Head is a shortcut forb.Route(pattern, "Head", handlers)
 func (b *Baa) Head(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("HEAD", pattern, h)
+	return b.Router().Add("HEAD", pattern, h)
 }
 
-// Options is a shortcut for b.router.handle("OPTIONS", pattern, handlers)
+// Options is a shortcut for b.Route(pattern, "Options", handlers)
 func (b *Baa) Options(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("OPTIONS", pattern, h)
+	return b.Router().Add("OPTIONS", pattern, h)
 }
 
-// Patch is a shortcut for b.router.handle("PATCH", pattern, handlers)
+// Patch is a shortcut for b.Route(pattern, "PATCH", handlers)
 func (b *Baa) Patch(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("PATCH", pattern, h)
+	return b.Router().Add("PATCH", pattern, h)
 }
 
-// Post is a shortcut for b.router.handle("POST", pattern, handlers)
+// Post is a shortcut for b.Route(pattern, "POST", handlers)
 func (b *Baa) Post(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("POST", pattern, h)
+	return b.Router().Add("POST", pattern, h)
 }
 
-// Put is a shortcut for b.router.handle("PUT", pattern, handlers)
+// Put is a shortcut for b.Route(pattern, "Put", handlers)
 func (b *Baa) Put(pattern string, h ...HandlerFunc) RouteNode {
-	return b.router.Add("PUT", pattern, h)
+	return b.Router().Add("PUT", pattern, h)
 }
 
 // SetNotFound set not found route handler
@@ -334,7 +351,7 @@ func (b *Baa) DefaultNotFoundHandler(c *Context) {
 
 // URLFor use named route return format url
 func (b *Baa) URLFor(name string, args ...interface{}) string {
-	return b.router.URLFor(name, args...)
+	return b.Router().URLFor(name, args...)
 }
 
 // wrapMiddleware wraps middleware.

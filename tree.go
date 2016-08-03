@@ -34,8 +34,8 @@ type group struct {
 	handlers []HandlerFunc
 }
 
-// newTree create a router instance
-func newTree() Router {
+// NewTree create a router instance
+func NewTree() Router {
 	t := new(Tree)
 	for i := 0; i < len(t.nodes); i++ {
 		t.nodes[i] = newLeaf("/", nil, nil)

@@ -11,7 +11,7 @@ import (
 )
 
 var b = New()
-var r = b.router
+var r = b.Router()
 var c = newContext(nil, nil, b)
 var f = func(c *Context) {}
 

@@ -11,8 +11,8 @@ type DI struct {
 	store map[string]interface{}
 }
 
-// newDI create a DI instance
-func newDI() DIer {
+// NewDI create a DI instance
+func NewDI() DIer {
 	d := new(DI)
 	d.store = make(map[string]interface{})
 	return d
@@ -21,16 +21,6 @@ func newDI() DIer {
 // Set register a di
 // baa dependency injection must be the special interface
 func (d *DI) Set(name string, v interface{}) {
-	switch name {
-	case "logger":
-		if _, ok := v.(Logger); !ok {
-			panic("DI logger must be implement interface baa.Logger")
-		}
-	case "render":
-		if _, ok := v.(Renderer); !ok {
-			panic("DI render must be implement interface baa.Renderer")
-		}
-	}
 	d.store[name] = v
 }
 
