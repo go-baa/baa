@@ -1,4 +1,4 @@
-package baa
+package regexp
 
 import (
 	"fmt"
@@ -6,78 +6,79 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-baa/baa"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// print the route map
-func (t *Tree) print(prefix string, root *Leaf) {
-	if root == nil {
-		for m := range t.nodes {
-			fmt.Println(m)
-			t.print("", t.nodes[m])
-		}
-		return
-	}
-	prefix = fmt.Sprintf("%s -> %s", prefix, root.pattern)
-	fmt.Println(prefix)
-	for i := range root.children {
-		t.print(prefix, root.children[i])
-	}
+var b = baa.New()
+var r = New(b)
+var f = func(c *baa.Context) {}
+var c = baa.NewContext(nil, nil, b)
+
+func init() {
+	b.SetDI("router", r)
 }
 
-func TestTreeRouteAdd1(t *testing.T) {
+// print the route map
+func (t *Router) print() {
+	for _, m := range t.nodes {
+		for _, n := range m {
+			fmt.Println(n.pattern)
+		}
+	}
+}
+func TestRegexpRouteAdd1(t *testing.T) {
 	Convey("add static route", t, func() {
-		r.Add("GET", "/", []HandlerFunc{f})
-		r.Add("GET", "/bcd", []HandlerFunc{f})
-		r.Add("GET", "/abcd", []HandlerFunc{f})
-		r.Add("GET", "/abc", []HandlerFunc{f})
-		r.Add("GET", "/abd", []HandlerFunc{f})
-		r.Add("GET", "/abcdef", []HandlerFunc{f})
-		r.Add("GET", "/bcdefg", []HandlerFunc{f})
-		r.Add("GET", "/abc/123", []HandlerFunc{f})
-		r.Add("GET", "/abc/234", []HandlerFunc{f})
-		r.Add("GET", "/abc/125", []HandlerFunc{f})
-		r.Add("GET", "/abc/235", []HandlerFunc{f})
-		r.Add("GET", "/cbd/123", []HandlerFunc{f})
-		r.Add("GET", "/cbd/234", []HandlerFunc{f})
-		r.Add("GET", "/cbd/345", []HandlerFunc{f})
-		r.Add("GET", "/cbd/456", []HandlerFunc{f})
-		r.Add("GET", "/cbd/346", []HandlerFunc{f})
+		r.Add("GET", "/", []baa.HandlerFunc{f})
+		r.Add("GET", "/bcd", []baa.HandlerFunc{f})
+		r.Add("GET", "/abcd", []baa.HandlerFunc{f})
+		r.Add("GET", "/abc", []baa.HandlerFunc{f})
+		r.Add("GET", "/abd", []baa.HandlerFunc{f})
+		r.Add("GET", "/abcdef", []baa.HandlerFunc{f})
+		r.Add("GET", "/bcdefg", []baa.HandlerFunc{f})
+		r.Add("GET", "/abc/123", []baa.HandlerFunc{f})
+		r.Add("GET", "/abc/234", []baa.HandlerFunc{f})
+		r.Add("GET", "/abc/125", []baa.HandlerFunc{f})
+		r.Add("GET", "/abc/235", []baa.HandlerFunc{f})
+		r.Add("GET", "/cbd/123", []baa.HandlerFunc{f})
+		r.Add("GET", "/cbd/234", []baa.HandlerFunc{f})
+		r.Add("GET", "/cbd/345", []baa.HandlerFunc{f})
+		r.Add("GET", "/cbd/456", []baa.HandlerFunc{f})
+		r.Add("GET", "/cbd/346", []baa.HandlerFunc{f})
 	})
 }
 
-func TestTreeRouteAdd2(t *testing.T) {
+func TestRegexpRouteAdd2(t *testing.T) {
 	Convey("add param route", t, func() {
-		r.Add("GET", "/", []HandlerFunc{f})
-		r.Add("GET", "/a/:id/id", []HandlerFunc{f})
-		r.Add("GET", "/a/:id/name", []HandlerFunc{f})
-		r.Add("GET", "/a", []HandlerFunc{f})
-		r.Add("GET", "/a/:id/", []HandlerFunc{f})
-		r.Add("GET", "/a/", []HandlerFunc{f})
-		r.Add("GET", "/a/*/xxx", []HandlerFunc{f})
-		r.Add("GET", "/p/:project/file/:fileName", []HandlerFunc{f})
-		r.Add("GET", "/cbd/:id", []HandlerFunc{f})
+		r.Add("GET", "/a/:id/id", []baa.HandlerFunc{f})
+		r.Add("GET", "/a/:id/name", []baa.HandlerFunc{f})
+		r.Add("GET", "/a", []baa.HandlerFunc{f})
+		r.Add("GET", "/a/:id/", []baa.HandlerFunc{f})
+		r.Add("GET", "/a/", []baa.HandlerFunc{f})
+		r.Add("GET", "/a/*/xxx", []baa.HandlerFunc{f})
+		r.Add("GET", "/p/:project/file/:name", []baa.HandlerFunc{f})
+		r.Add("GET", "/cbd/:id", []baa.HandlerFunc{f})
 
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.Add("GET", "/p/:/a", []HandlerFunc{f})
+		r.Add("GET", "/p/:/a", []baa.HandlerFunc{f})
 	})
 }
 
-func TestTreeRouteAdd3(t *testing.T) {
+func TestRegexpRouteAdd3(t *testing.T) {
 	Convey("add param route with two different param", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.Add("GET", "/a/:id", []HandlerFunc{f})
-		r.Add("GET", "/a/:name", []HandlerFunc{f})
+		r.Add("GET", "/a/:id", []baa.HandlerFunc{f})
+		r.Add("GET", "/a/:name", []baa.HandlerFunc{f})
 	})
 }
 
-func TestTreeRouteAdd4(t *testing.T) {
+func TestRegexpRouteAdd4(t *testing.T) {
 	Convey("add route by group", t, func() {
 		b.Group("/user", func() {
 			b.Get("/info", f)
@@ -95,7 +96,7 @@ func TestTreeRouteAdd4(t *testing.T) {
 	})
 }
 
-func TestTreeRouteAdd5(t *testing.T) {
+func TestRegexpRouteAdd5(t *testing.T) {
 	Convey("add route then set name, URLFor", t, func() {
 		b.Get("/article/:id/show", f).Name("articleShow")
 		b.Get("/article/:id/detail", f).Name("")
@@ -108,42 +109,42 @@ func TestTreeRouteAdd5(t *testing.T) {
 	})
 }
 
-func TestTreeRouteAdd6(t *testing.T) {
+func TestRegexpRouteAdd6(t *testing.T) {
 	Convey("add route with not support method", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.Add("TRACE", "/", []HandlerFunc{f})
+		r.Add("TRACE", "/", []baa.HandlerFunc{f})
 	})
 }
 
-func TestTreeRouteAdd7(t *testing.T) {
+func TestRegexpRouteAdd7(t *testing.T) {
 	Convey("add route with empty pattern", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.Add("GET", "", []HandlerFunc{f})
+		r.Add("GET", "", []baa.HandlerFunc{f})
 	})
 }
 
-func TestTreeRouteAdd8(t *testing.T) {
+func TestRegexpRouteAdd8(t *testing.T) {
 	Convey("add route with pattern that not begin with /", t, func() {
 		defer func() {
 			e := recover()
 			So(e, ShouldNotBeNil)
 		}()
-		r.Add("GET", "abc", []HandlerFunc{f})
+		r.Add("GET", "abc", []baa.HandlerFunc{f})
 	})
 }
 
-func TestTreeRouteAdd9(t *testing.T) {
+func TestRegexpRouteAdd9(t *testing.T) {
 	Convey("other route method", t, func() {
-		b2 := New()
+		b2 := baa.New()
 		Convey("set auto head route", func() {
 			b2.SetAutoHead(true)
-			b2.Get("/head", func(c *Context) {
+			b2.Get("/head", func(c *baa.Context) {
 				So(c.Req.Method, ShouldEqual, "HEAD")
 			})
 			req, _ := http.NewRequest("HEAD", "/head", nil)
@@ -153,10 +154,10 @@ func TestTreeRouteAdd9(t *testing.T) {
 		})
 		Convey("set auto training slash", func() {
 			b2.SetAutoTrailingSlash(true)
-			b2.Get("/slash", func(c *Context) {})
+			b2.Get("/slash", func(c *baa.Context) {})
 			b2.Group("/slash2", func() {
-				b2.Get("/", func(c *Context) {})
-				b2.Get("/exist", func(c *Context) {})
+				b2.Get("/", func(c *baa.Context) {})
+				b2.Get("/exist", func(c *baa.Context) {})
 			})
 			req, _ := http.NewRequest("GET", "/slash", nil)
 			w := httptest.NewRecorder()
@@ -180,10 +181,10 @@ func TestTreeRouteAdd9(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("set multi method", func() {
-			b2.Route("/mul", "*", func(c *Context) {
+			b2.Route("/mul", "*", func(c *baa.Context) {
 				c.String(200, "mul")
 			})
-			b2.Route("/mul", "GET,HEAD,POST", func(c *Context) {
+			b2.Route("/mul", "GET,HEAD,POST", func(c *baa.Context) {
 				c.String(200, "mul")
 			})
 			req, _ := http.NewRequest("HEAD", "/mul", nil)
@@ -209,16 +210,15 @@ func TestTreeRouteAdd9(t *testing.T) {
 			b2.Options("/methods", f)
 			b2.Head("/methods", f)
 			b2.Any("/any", f)
-			b2.SetNotFound(func(c *Context) {
+			b2.SetNotFound(func(c *baa.Context) {
 				c.String(404, "baa not found")
 			})
 		})
 	})
 }
 
-func TestTreeRouteMatch1(t *testing.T) {
+func TestRegexpRouteMatch1(t *testing.T) {
 	Convey("match route", t, func() {
-
 		ru := r.Match("GET", "/", c)
 		So(ru, ShouldNotBeNil)
 
@@ -248,21 +248,27 @@ func TestTreeRouteMatch1(t *testing.T) {
 
 		ru = r.Match("GET", "/xxxx", c)
 		So(ru, ShouldBeNil)
-
-		b.Get("/notifications/threads/:id", f)
-		b.Get("/notifications/threads/:id/subscription", f)
-		b.Get("/notifications/threads/:id/subc", f)
-		b.Put("/notifications/threads/:id/subscription", f)
-		b.Delete("/notifications/threads/:id/subscription", f)
-		ru = r.Match("GET", "/notifications/threads/:id", c)
-		So(ru, ShouldNotBeNil)
-		ru = r.Match("GET", "/notifications/threads/:id/sub", c)
-		So(ru, ShouldBeNil)
 	})
 }
 
-func TestTreeRoutePrint1(t *testing.T) {
+func TestRegexpRouteRegexp1(t *testing.T) {
+	Convey("regexp match", t, func() {
+		b.Get("/jk/:id/:page.html", f)
+		b.Get("/yy/:py([a-zA-Z0-9_-]+)-:id(int)/:page.html", f)
+		ru := r.Match("GET", "/jk/123/1.html", c)
+		So(ru, ShouldNotBeNil)
+		So(c.ParamInt("id"), ShouldEqual, 123)
+		So(c.ParamInt("page"), ShouldEqual, 1)
+		ru = r.Match("GET", "/yy/bei-yi-san-yuan-123/video.html", c)
+		So(ru, ShouldNotBeNil)
+		So(c.Param("py"), ShouldEqual, "bei-yi-san-yuan")
+		So(c.ParamInt("id"), ShouldEqual, 123)
+		So(c.Param("page"), ShouldEqual, "video")
+	})
+}
+
+func TestRegexpRoutePrint1(t *testing.T) {
 	Convey("print route table", t, func() {
-		r.(*Tree).print("", nil)
+		r.(*Router).print()
 	})
 }

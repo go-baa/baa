@@ -57,14 +57,14 @@ func New() *Baa {
 	b.middleware = make([]HandlerFunc, 0)
 	b.pool = sync.Pool{
 		New: func() interface{} {
-			return newContext(nil, nil, b)
+			return NewContext(nil, nil, b)
 		},
 	}
 	if Env != PROD {
 		b.debug = true
 	}
 	b.SetDIer(NewDI())
-	b.SetDI("router", NewTree())
+	b.SetDI("router", NewTree(b))
 	b.SetDI("logger", log.New(os.Stderr, "[Baa] ", log.LstdFlags))
 	b.SetDI("render", newRender())
 	b.SetNotFound(b.DefaultNotFoundHandler)
@@ -130,7 +130,7 @@ func (b *Baa) run(s *http.Server, files ...string) {
 
 func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := b.pool.Get().(*Context)
-	c.reset(w, r)
+	c.Reset(w, r)
 
 	// build handler chain
 	route := b.Router().Match(r.Method, r.URL.Path, c)
@@ -362,15 +362,23 @@ func wrapMiddleware(m Middleware) HandlerFunc {
 	case func(*Context):
 		return m
 	case http.Handler, http.HandlerFunc:
-		return wrapHandlerFunc(func(c *Context) {
+		return WrapHandlerFunc(func(c *Context) {
 			m.(http.Handler).ServeHTTP(c.Resp, c.Req)
 		})
 	case func(http.ResponseWriter, *http.Request):
-		return wrapHandlerFunc(func(c *Context) {
+		return WrapHandlerFunc(func(c *Context) {
 			m(c.Resp, c.Req)
 		})
 	default:
 		panic("unknown middleware")
+	}
+}
+
+// WrapHandlerFunc wrap for context handler chain
+func WrapHandlerFunc(h HandlerFunc) HandlerFunc {
+	return func(c *Context) {
+		h(c)
+		c.Next()
 	}
 }
 

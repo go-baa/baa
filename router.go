@@ -46,10 +46,11 @@ type RouteNode interface {
 	Handlers() []HandlerFunc
 }
 
-// wrapHandlerFunc wrap for context handler chain
-func wrapHandlerFunc(h HandlerFunc) HandlerFunc {
-	return func(c *Context) {
-		h(c)
-		c.Next()
+// IsParamChar check the char can used for route params
+// a-z->65:90, A-Z->97:122, 0-9->48->57, _->95
+func IsParamChar(c byte) bool {
+	if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95 {
+		return true
 	}
+	return false
 }

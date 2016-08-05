@@ -55,8 +55,8 @@ type Context struct {
 	hi       int           // handlers execute position
 }
 
-// newContext create a http context
-func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
+// NewContext create a http context
+func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
 	c.Resp = NewResponse(w, b)
 	c.baa = b
@@ -64,12 +64,12 @@ func newContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c.pValues = make([]string, 0, 32)
 	c.handlers = make([]HandlerFunc, len(b.middleware), len(b.middleware)+3)
 	copy(c.handlers, b.middleware)
-	c.reset(w, r)
+	c.Reset(w, r)
 	return c
 }
 
 // reset ...
-func (c *Context) reset(w http.ResponseWriter, r *http.Request) {
+func (c *Context) Reset(w http.ResponseWriter, r *http.Request) {
 	c.Resp.reset(w)
 	c.Req = r
 	c.hi = 0

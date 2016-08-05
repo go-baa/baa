@@ -12,7 +12,7 @@ import (
 
 var b = New()
 var r = b.Router()
-var c = newContext(nil, nil, b)
+var c = NewContext(nil, nil, b)
 var f = func(c *Context) {}
 
 type newHandler struct{}

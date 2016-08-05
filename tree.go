@@ -10,9 +10,9 @@ type Tree struct {
 	autoHead          bool
 	autoTrailingSlash bool
 	mu                sync.RWMutex
-	notFoundHandler   HandlerFunc
 	groups            []*group
 	nodes             [RouteLength]*Leaf
+	baa               *Baa
 	namedNodes        map[string]string
 }
 
@@ -35,13 +35,14 @@ type group struct {
 }
 
 // NewTree create a router instance
-func NewTree() Router {
+func NewTree(b *Baa) Router {
 	t := new(Tree)
 	for i := 0; i < len(t.nodes); i++ {
 		t.nodes[i] = newLeaf("/", nil, nil)
 	}
 	t.namedNodes = make(map[string]string)
 	t.groups = make([]*group, 0)
+	t.baa = b
 	return t
 }
 
@@ -86,6 +87,9 @@ func (t *Tree) Match(method, pattern string, c *Context) RouteNode {
 			l = len(root.pattern)
 			if l <= len(pattern) && root.pattern == pattern[:l] {
 				if l == len(pattern) {
+					if root.handlers == nil {
+						return nil
+					}
 					return root
 				}
 				if len(root.children) == 0 {
@@ -210,14 +214,14 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
 	}
 
 	for i := 0; i < len(handlers); i++ {
-		handlers[i] = wrapHandlerFunc(handlers[i])
+		handlers[i] = WrapHandlerFunc(handlers[i])
 	}
 
 	root := t.nodes[RouterMethods[method]]
 	var radix []byte
 	var param []byte
 	var i, k int
-	var tru *Leaf
+	var tl *Leaf
 	for i = 0; i < len(pattern); i++ {
 		//param route
 		if pattern[i] == ':' {
@@ -242,13 +246,13 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
 			}
 			// check last character
 			if i == len(pattern) {
-				tru = newLeaf(":", handlers, t)
+				tl = newLeaf(":", handlers, t)
 			} else {
-				tru = newLeaf(":", nil, nil)
+				tl = newLeaf(":", nil, nil)
 			}
-			tru.param = string(param[:k])
-			tru.hasParam = true
-			root = t.insert(root, tru)
+			tl.param = string(param[:k])
+			tl.hasParam = true
+			root = t.insert(root, tl)
 			continue
 		}
 		radix = append(radix, pattern[i])
@@ -256,8 +260,8 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
 
 	// static route
 	if len(radix) > 0 {
-		tru = newLeaf(string(radix), handlers, t)
-		t.insert(root, tru)
+		tl = newLeaf(string(radix), handlers, t)
+		t.insert(root, tl)
 	}
 
 	return newLeaf(pattern, handlers, t)
