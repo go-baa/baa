@@ -47,11 +47,11 @@ func NewTree(b *Baa) Router {
 }
 
 // newLeaf create a route node
-func newLeaf(pattern string, handles []HandlerFunc, root *Tree) *Leaf {
+func newLeaf(pattern string, handlers []HandlerFunc, root *Tree) *Leaf {
 	l := new(Leaf)
 	l.pattern = pattern
 	l.alpha = pattern[0]
-	l.handlers = handles
+	l.handlers = handlers
 	l.root = root
 	l.children = make([]*Leaf, 0)
 	return l
@@ -75,8 +75,8 @@ func (t *Tree) SetAutoTrailingSlash(v bool) {
 	t.autoTrailingSlash = v
 }
 
-// Match match the route
-func (t *Tree) Match(method, pattern string, c *Context) RouteNode {
+// Match find matched route and returns handlerss
+func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 	var i, l int
 	var root, nn *Leaf
 	root = t.nodes[RouterMethods[method]]
@@ -90,7 +90,7 @@ func (t *Tree) Match(method, pattern string, c *Context) RouteNode {
 					if root.handlers == nil {
 						return nil
 					}
-					return root
+					return root.handlers
 				}
 				if len(root.children) == 0 {
 					return nil
@@ -110,7 +110,7 @@ func (t *Tree) Match(method, pattern string, c *Context) RouteNode {
 			}
 			c.SetParam(root.param, pattern[:i])
 			if i == l {
-				return root
+				return root.handlers
 			}
 			pattern = pattern[i:]
 		}
@@ -337,11 +337,6 @@ func (t *Tree) insert(root *Leaf, node *Leaf) *Leaf {
 	_parent.insertChild(node)
 
 	return node
-}
-
-// Handlers returns handlers bond with leaf
-func (l *Leaf) Handlers() []HandlerFunc {
-	return l.handlers
 }
 
 // Name set name of route

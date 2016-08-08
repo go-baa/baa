@@ -133,12 +133,12 @@ func (b *Baa) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.Reset(w, r)
 
 	// build handler chain
-	route := b.Router().Match(r.Method, r.URL.Path, c)
+	h := b.Router().Match(r.Method, r.URL.Path, c)
 	// notFound
-	if route == nil || route.Handlers() == nil {
+	if h == nil {
 		c.handlers = append(c.handlers, b.notFoundHandler)
 	} else {
-		c.handlers = append(c.handlers, route.Handlers()...)
+		c.handlers = append(c.handlers, h...)
 	}
 
 	c.Next()

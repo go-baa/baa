@@ -1,33 +1,28 @@
-package regexp
+package regtree
 
 import (
 	"fmt"
-	"regexp"
 	"sync"
 
 	"github.com/go-baa/baa"
 )
 
-// Router provlider router for baa with regexp
+// Router provlider router for baa
 type Router struct {
 	autoHead          bool
 	autoTrailingSlash bool
-	mu                sync.RWMutex
 	groups            []*group
-	nodes             [baa.RouteLength][]*Node
-	baa               *baa.Baa
+	nodes             [baa.RouteLength]*Tree
 	namedNodes        map[string]*Node
+	baa               *baa.Baa
+	mu                sync.RWMutex
 }
 
 // Node is a router node
 type Node struct {
-	hasParam bool
-	pattern  string
-	format   []byte
-	params   []string
-	re       *regexp.Regexp
-	root     *Router
-	handlers []baa.HandlerFunc
+	format string
+	params []string
+	root   *Router
 }
 
 // group route
@@ -39,21 +34,19 @@ type group struct {
 // New create a router instance
 func New(b *baa.Baa) baa.Router {
 	r := new(Router)
-	for i := 0; i < len(r.nodes); i++ {
-		r.nodes[i] = make([]*Node, 0)
+	for _, i := range baa.RouterMethods {
+		r.nodes[i] = NewTree("/", nil)
 	}
-	r.namedNodes = make(map[string]*Node)
-	r.groups = make([]*group, 0)
 	r.baa = b
 	return r
 }
 
 // newNode create a route node
-func newNode(pattern string, handlers []baa.HandlerFunc, root *Router) *Node {
+func newNode(format string, params []string, router *Router) *Node {
 	n := new(Node)
-	n.pattern = pattern
-	n.handlers = handlers
-	n.root = root
+	n.format = format
+	n.params = params
+	n.root = router
 	return n
 }
 
@@ -77,23 +70,14 @@ func (r *Router) SetAutoTrailingSlash(v bool) {
 
 // Match find matched route and returns handlerss
 func (r *Router) Match(method, uri string, c *baa.Context) []baa.HandlerFunc {
-	for _, n := range r.nodes[baa.RouterMethods[method]] {
-		if !n.hasParam {
-			if n.pattern == uri {
-				return n.handlers
-			}
-			continue
-		}
-		data := n.re.FindStringSubmatch(uri)
-		if len(data) != len(n.params)+1 {
-			continue
-		}
-		for i := range n.params {
-			c.SetParam(n.params[i], data[i+1])
-		}
-		return n.handlers
+	node, values := r.nodes[baa.RouterMethods[method]].Get(uri)
+	if node == nil {
+		return nil
 	}
-	return nil
+	for i := range node.params {
+		c.SetParam(node.params[i], values[i])
+	}
+	return node.val.([]baa.HandlerFunc)
 }
 
 // URLFor use named route return format url
@@ -176,64 +160,11 @@ func (r *Router) add(method, pattern string, handlers []baa.HandlerFunc) *Node {
 		handlers[i] = baa.WrapHandlerFunc(handlers[i])
 	}
 
-	tn := newNode("", handlers, r)
-	var i, j, k int
-	var param, restr string
-	var tpattern []byte
-	for i = 0; i < len(pattern); i++ {
-		if pattern[i] == ':' {
-			// in param route
-			for j = i + 1; j < len(pattern) && baa.IsParamChar(pattern[j]); j++ {
-			}
-			param = pattern[i+1 : j]
-			if param == "" {
-				panic("Router.add: pattern param is empty")
-			}
-			i = j - 1
-			// check regexp
-			restr = ""
-			if j < len(pattern) && pattern[j] == '(' {
-				for k = j + 1; k < len(pattern) && pattern[k] != ')'; k++ {
-				}
-				restr = pattern[j+1 : k]
-				i = k
-			}
-			if restr == "" {
-				restr = "([^\\/]+)"
-			} else if restr == "int" {
-				restr = "([\\d]+)"
-			} else if restr == "string" {
-				restr = "([\\w]+)"
-			} else {
-				restr = "(" + restr + ")"
-			}
-			tpattern = append(tpattern, restr...)
-			tn.format = append(tn.format, "%v"...)
-			tn.params = append(tn.params, param)
-			tn.hasParam = true
-			continue
-		}
-		tpattern = append(tpattern, pattern[i])
-		tn.format = append(tn.format, pattern[i])
+	node := r.nodes[baa.RouterMethods[method]].Add(pattern, handlers)
+	if node == nil {
+		panic("Router.add: tree.add error")
 	}
-	tn.pattern = string(tpattern)
-	if tn.hasParam {
-		var err error
-		tn.re, err = regexp.Compile(tn.pattern + "$")
-		if err != nil {
-			panic("Router.add: " + err.Error())
-		}
-	}
-	// check repeat route
-	if r.baa.Debug() && tn.pattern != "/" {
-		for _, n := range r.nodes[baa.RouterMethods[method]] {
-			if n.pattern == tn.pattern {
-				panic("Router.add: route already exist -> " + tn.pattern)
-			}
-		}
-	}
-	r.nodes[baa.RouterMethods[method]] = append(r.nodes[baa.RouterMethods[method]], tn)
-	return tn
+	return newNode(string(node.format), node.params, r)
 }
 
 // Name set name of route

@@ -30,8 +30,8 @@ type Router interface {
 	SetAutoHead(v bool)
 	// SetAutoTrailingSlash optional trailing slash.
 	SetAutoTrailingSlash(v bool)
-	// Match match the route
-	Match(method, uri string, c *Context) RouteNode
+	// Match find matched route and returns handlerss
+	Match(method, uri string, c *Context) []HandlerFunc
 	// URLFor use named route return format url
 	URLFor(name string, args ...interface{}) string
 	// Add registers a new handle with the given method, pattern and handlers.
@@ -43,7 +43,6 @@ type Router interface {
 // RouteNode is an router node
 type RouteNode interface {
 	Name(name string)
-	Handlers() []HandlerFunc
 }
 
 // IsParamChar check the char can used for route params
