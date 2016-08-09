@@ -13,7 +13,7 @@ type Tree struct {
 	groups            []*group
 	nodes             [RouteLength]*Leaf
 	baa               *Baa
-	namedNodes        map[string]string
+	namedNodes        map[string]*namedNode
 }
 
 // Leaf is a tree node
@@ -28,6 +28,13 @@ type Leaf struct {
 	handlers []HandlerFunc
 }
 
+// namedNode is struct for named route
+type namedNode struct {
+	format   string
+	paramNum int
+	root     *Tree
+}
+
 // group route
 type group struct {
 	pattern  string
@@ -40,7 +47,7 @@ func NewTree(b *Baa) Router {
 	for i := 0; i < len(t.nodes); i++ {
 		t.nodes[i] = newLeaf("/", nil, nil)
 	}
-	t.namedNodes = make(map[string]string)
+	t.namedNodes = make(map[string]*namedNode)
 	t.groups = make([]*group, 0)
 	t.baa = b
 	return t
@@ -147,11 +154,16 @@ func (t *Tree) URLFor(name string, args ...interface{}) string {
 	if name == "" {
 		return ""
 	}
-	url := t.namedNodes[name]
-	if url == "" {
+	node := t.namedNodes[name]
+	if node == nil || len(node.format) == 0 {
 		return ""
 	}
-	return fmt.Sprintf(url, args...)
+	format := make([]byte, len(node.format))
+	copy(format, node.format)
+	for i := node.paramNum + 1; i <= len(args); i++ {
+		format = append(format, "%v"...)
+	}
+	return fmt.Sprintf(string(format), args...)
 }
 
 // Add registers a new handle with the given method, pattern and handlers.
@@ -344,14 +356,16 @@ func (l *Leaf) Name(name string) {
 	if name == "" {
 		return
 	}
-	p := make([]byte, 0, len(l.pattern))
+	n := 0
+	f := make([]byte, 0, len(l.pattern))
 	for i := 0; i < len(l.pattern); i++ {
 		if l.pattern[i] != ':' {
-			p = append(p, l.pattern[i])
+			f = append(f, l.pattern[i])
 			continue
 		}
-		p = append(p, '%')
-		p = append(p, 'v')
+		f = append(f, '%')
+		f = append(f, 'v')
+		n++
 		for i = i + 1; i < len(l.pattern); i++ {
 			if l.pattern[i] == '/' {
 				i--
@@ -359,7 +373,11 @@ func (l *Leaf) Name(name string) {
 			}
 		}
 	}
-	l.root.namedNodes[name] = string(p)
+	l.root.namedNodes[name] = &namedNode{
+		paramNum: n,
+		format:   string(f),
+		root:     l.root,
+	}
 }
 
 // findChild find child static route
