@@ -223,7 +223,7 @@ func (b *Baa) Static(prefix string, dir string, index bool, h HandlerFunc) {
 	}
 	staticHandler := newStatic(prefix, dir, index, h)
 	b.Get(prefix, staticHandler)
-	b.Get(prefix+":file", staticHandler)
+	b.Get(prefix+"*", staticHandler)
 }
 
 // SetAutoHead sets the value who determines whether add HEAD method automatically

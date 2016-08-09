@@ -32,7 +32,7 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 	}
 
 	return func(c *Context) {
-		file := c.Param("file")
+		file := c.Param("")
 		if len(file) > 0 && file[0] == '/' {
 			file = file[1:]
 		}
