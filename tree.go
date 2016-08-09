@@ -5,34 +5,43 @@ import (
 	"sync"
 )
 
+const (
+	leafKindStatic uint = iota
+	leafKindParam
+	leafKindWide
+)
+
 // Tree provlider router for baa with radix tree
 type Tree struct {
 	autoHead          bool
 	autoTrailingSlash bool
 	mu                sync.RWMutex
 	groups            []*group
-	nodes             [RouteLength]*Leaf
+	nodes             [RouteLength]*leaf
 	baa               *Baa
-	namedNodes        map[string]*namedNode
+	namedNodes        map[string]*Node
+}
+
+// Node is struct for named route
+type Node struct {
+	paramNum int
+	pattern  string
+	format   string
+	root     *Tree
 }
 
 // Leaf is a tree node
-type Leaf struct {
-	hasParam bool
-	alpha    byte
-	pattern  string
-	param    string
-	root     *Tree
-	parent   *Leaf
-	children []*Leaf
-	handlers []HandlerFunc
-}
-
-// namedNode is struct for named route
-type namedNode struct {
-	format   string
-	paramNum int
-	root     *Tree
+type leaf struct {
+	kind        uint
+	pattern     string
+	param       string
+	handlers    []HandlerFunc
+	children    []*leaf
+	childrenNum uint
+	paramChild  *leaf
+	wideChild   *leaf
+	parent      *leaf
+	root        *Tree
 }
 
 // group route
@@ -45,22 +54,30 @@ type group struct {
 func NewTree(b *Baa) Router {
 	t := new(Tree)
 	for i := 0; i < len(t.nodes); i++ {
-		t.nodes[i] = newLeaf("/", nil, nil)
+		t.nodes[i] = newLeaf("/", nil, t)
 	}
-	t.namedNodes = make(map[string]*namedNode)
+	t.namedNodes = make(map[string]*Node)
 	t.groups = make([]*group, 0)
 	t.baa = b
 	return t
 }
 
-// newLeaf create a route node
-func newLeaf(pattern string, handlers []HandlerFunc, root *Tree) *Leaf {
-	l := new(Leaf)
+// NewNode create a route node
+func NewNode(pattern string, root *Tree) *Node {
+	return &Node{
+		pattern: pattern,
+		root:    root,
+	}
+}
+
+// newLeaf create a tree leaf
+func newLeaf(pattern string, handlers []HandlerFunc, root *Tree) *leaf {
+	l := new(leaf)
 	l.pattern = pattern
-	l.alpha = pattern[0]
 	l.handlers = handlers
 	l.root = root
-	l.children = make([]*Leaf, 0)
+	l.kind = leafKindStatic
+	l.children = make([]*leaf, 128)
 	return l
 }
 
@@ -85,61 +102,63 @@ func (t *Tree) SetAutoTrailingSlash(v bool) {
 // Match find matched route and returns handlerss
 func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 	var i, l int
-	var root, nn *Leaf
+	var root, nl *leaf
 	root = t.nodes[RouterMethods[method]]
 
 	for {
-		// static route
-		if !root.hasParam {
+		switch root.kind {
+		case leafKindStatic:
+			// static route
 			l = len(root.pattern)
-			if l <= len(pattern) && root.pattern == pattern[:l] {
-				if l == len(pattern) {
-					if root.handlers == nil {
-						return nil
-					}
-					return root.handlers
-				}
-				if len(root.children) == 0 {
-					return nil
-				}
-				pattern = pattern[l:]
-			} else {
+			if l > len(pattern) {
 				return nil
 			}
-		} else {
+			for i := l - 1; i >= 0; i-- {
+				if root.pattern[i] != pattern[i] {
+					return nil
+				}
+			}
+			pattern = pattern[l:]
+		case leafKindParam:
 			// params route
 			l = len(pattern)
-			if len(root.children) == 0 {
+			if root.childrenNum == 0 {
 				i = l
 			} else {
 				for i = 0; i < l && pattern[i] != '/'; i++ {
 				}
 			}
 			c.SetParam(root.param, pattern[:i])
-			if i == l {
-				return root.handlers
-			}
 			pattern = pattern[i:]
+		case leafKindWide:
+			// wide route
+			c.SetParam(root.param, pattern)
+			pattern = pattern[:0]
+		default:
 		}
 
-		// only one child
-		if len(root.children) == 1 {
-			if root.children[0].hasParam || root.children[0].alpha == pattern[0] {
-				root = root.children[0]
-				continue
+		if len(pattern) == 0 {
+			if root.handlers == nil {
+				return nil
 			}
-			break
+			return root.handlers
 		}
 
 		// children static route
-		if nn = root.findChild(pattern[0]); nn != nil {
-			root = nn
+		if nl = root.children[pattern[0]]; nl != nil {
+			root = nl
 			continue
 		}
 
-		// children param route
-		if root.children[0].hasParam {
-			root = root.children[0]
+		// param route
+		if root.paramChild != nil {
+			root = root.paramChild
+			continue
+		}
+
+		// wide route
+		if root.wideChild != nil {
+			root = root.wideChild
 			continue
 		}
 
@@ -194,7 +213,7 @@ func (t *Tree) GroupAdd(pattern string, f func(), handlers []HandlerFunc) {
 }
 
 // add registers a new request handle with the given method, pattern and handlers.
-func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
+func (t *Tree) add(method, pattern string, handlers []HandlerFunc) RouteNode {
 	if _, ok := RouterMethods[method]; !ok {
 		panic("unsupport http method [" + method + "]")
 	}
@@ -230,16 +249,40 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
 	}
 
 	root := t.nodes[RouterMethods[method]]
+	origPattern := pattern
+
+	// specialy route = /
+	if len(pattern) == 1 {
+		root.handlers = handlers
+		return NewNode(origPattern, t)
+	}
+
+	// left trim slash, because root is slash /
+	pattern = pattern[1:]
+
 	var radix []byte
 	var param []byte
 	var i, k int
-	var tl *Leaf
+	var tl *leaf
 	for i = 0; i < len(pattern); i++ {
-		//param route
+		// wide route
+		if pattern[i] == '*' {
+			// clear static route
+			if len(radix) > 0 {
+				root = root.insertChild(newLeaf(string(radix), nil, t))
+				radix = radix[:0]
+			}
+			tl = newLeaf("*", handlers, t)
+			tl.kind = leafKindWide
+			root.insertChild(tl)
+			break
+		}
+
+		// param route
 		if pattern[i] == ':' {
 			// clear static route
 			if len(radix) > 0 {
-				root = t.insert(root, newLeaf(string(radix), nil, nil))
+				root = root.insertChild(newLeaf(string(radix), nil, t))
 				radix = radix[:0]
 			}
 			// set param route
@@ -260,11 +303,11 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
 			if i == len(pattern) {
 				tl = newLeaf(":", handlers, t)
 			} else {
-				tl = newLeaf(":", nil, nil)
+				tl = newLeaf(":", nil, t)
 			}
 			tl.param = string(param[:k])
-			tl.hasParam = true
-			root = t.insert(root, tl)
+			tl.kind = leafKindParam
+			root = root.insertChild(tl)
 			continue
 		}
 		radix = append(radix, pattern[i])
@@ -273,181 +316,106 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) *Leaf {
 	// static route
 	if len(radix) > 0 {
 		tl = newLeaf(string(radix), handlers, t)
-		t.insert(root, tl)
+		root.insertChild(tl)
 	}
 
-	return newLeaf(pattern, handlers, t)
-}
-
-// insert build the route tree
-func (t *Tree) insert(root *Leaf, node *Leaf) *Leaf {
-	// same route
-	if root.pattern == node.pattern {
-		if node.handlers != nil {
-			root.handlers = node.handlers
-		}
-		return root
-	}
-
-	// param route
-	if !root.hasParam && node.hasParam {
-		return root.insertChild(node)
-	}
-
-	var i int
-	if root.hasParam && !node.hasParam {
-		for i = range root.children {
-			if root.children[i].pattern == node.pattern {
-				if node.handlers != nil {
-					root.children[i].handlers = node.handlers
-				}
-				return root.children[i]
-			}
-			if root.children[i].hasPrefixString(node.pattern) > 0 {
-				return t.insert(root.children[i], node)
-			}
-		}
-
-		root.insertChild(node)
-		return node
-	}
-
-	// find radix
-	pos := root.hasPrefixString(node.pattern)
-	if pos == len(node.pattern) {
-		root.parent.deleteChild(root)
-		root.parent.insertChild(node)
-		root.resetPattern(root.pattern[pos:])
-		node.insertChild(root)
-		return node
-	}
-
-	node.resetPattern(node.pattern[pos:])
-	if pos == len(root.pattern) {
-		for i = range root.children {
-			if root.children[i].pattern == node.pattern {
-				if node.handlers != nil {
-					root.children[i].handlers = node.handlers
-				}
-				return root.children[i]
-			}
-			if root.children[i].hasPrefixString(node.pattern) > 0 {
-				return t.insert(root.children[i], node)
-			}
-		}
-
-		root.insertChild(node)
-		return node
-	}
-
-	// _parent root and ru has new parent
-	_parent := newLeaf(root.pattern[:pos], nil, t)
-	root.parent.deleteChild(root)
-	root.parent.insertChild(_parent)
-	root.resetPattern(root.pattern[pos:])
-	_parent.insertChild(root)
-	_parent.insertChild(node)
-
-	return node
-}
-
-// Name set name of route
-func (l *Leaf) Name(name string) {
-	if name == "" {
-		return
-	}
-	n := 0
-	f := make([]byte, 0, len(l.pattern))
-	for i := 0; i < len(l.pattern); i++ {
-		if l.pattern[i] != ':' {
-			f = append(f, l.pattern[i])
-			continue
-		}
-		f = append(f, '%')
-		f = append(f, 'v')
-		n++
-		for i = i + 1; i < len(l.pattern); i++ {
-			if l.pattern[i] == '/' {
-				i--
-				break
-			}
-		}
-	}
-	l.root.namedNodes[name] = &namedNode{
-		paramNum: n,
-		format:   string(f),
-		root:     l.root,
-	}
-}
-
-// findChild find child static route
-func (l *Leaf) findChild(b byte) *Leaf {
-	var i int
-	var j = len(l.children)
-	for ; i < j; i++ {
-		if l.children[i].alpha == b && !l.children[i].hasParam {
-			return l.children[i]
-		}
-	}
-	return nil
-}
-
-// deleteChild find child and delete from root route
-func (l *Leaf) deleteChild(node *Leaf) {
-	for i := 0; i < len(l.children); i++ {
-		if l.children[i].pattern != node.pattern {
-			continue
-		}
-		if len(l.children) == 1 {
-			l.children = l.children[:0]
-			return
-		}
-		if i == 0 {
-			l.children = l.children[1:]
-			return
-		}
-		if i+1 == len(l.children) {
-			l.children = l.children[:i]
-			return
-		}
-		l.children = append(l.children[:i], l.children[i+1:]...)
-		return
-	}
+	return NewNode(origPattern, t)
 }
 
 // insertChild insert child into root route, and returns the child route
-func (l *Leaf) insertChild(node *Leaf) *Leaf {
-	var i int
-	for ; i < len(l.children); i++ {
-		if l.children[i].pattern == node.pattern {
-			if l.children[i].hasParam && node.hasParam && l.children[i].param != node.param {
-				panic("Router Tree.insert error cannot use two param [:" + l.children[i].param + ", :" + node.param + "]with same prefix!")
-			}
-			if node.handlers != nil {
-				l.children[i].handlers = node.handlers
-			}
-			return l.children[i]
+func (l *leaf) insertChild(node *leaf) *leaf {
+	// wide route
+	if node.kind == leafKindWide {
+		if l.wideChild != nil {
+			panic("Router Tree.insert error: cannot set two wide route with same prefix!")
 		}
+		l.wideChild = node
+		return node
 	}
-	node.parent = l
-	l.children = append(l.children, node)
 
-	i = len(l.children) - 1
-	if i > 0 && l.children[i].hasParam {
-		l.children[0], l.children[i] = l.children[i], l.children[0]
-		return l.children[0]
+	// param route
+	if node.kind == leafKindParam {
+		if l.paramChild == nil {
+			l.paramChild = node
+			return l.paramChild
+		}
+		if l.paramChild.param != node.param {
+			panic("Router Tree.insert error cannot use two param [:" + l.paramChild.param + ", :" + node.param + "] with same prefix!")
+		}
+		if node.handlers != nil {
+			if l.paramChild.handlers != nil {
+				panic("Router Tree.insert error: cannot twice set handler for same route")
+			}
+			l.paramChild.handlers = node.handlers
+		}
+		return l.paramChild
 	}
+
+	// static route
+	child := l.children[node.pattern[0]]
+	if child == nil {
+		// new child
+		l.children[node.pattern[0]] = node
+		l.childrenNum++
+		return node
+	}
+
+	pos := child.hasPrefixString(node.pattern)
+	pre := node.pattern[:pos]
+	if pos == len(child.pattern) {
+		// same route
+		if pos == len(node.pattern) {
+			if node.handlers != nil {
+				if child.handlers != nil {
+					panic("Router Tree.insert error: cannot twice set handler for same route")
+				}
+				child.handlers = node.handlers
+			}
+			return child
+		}
+
+		// child is prefix or node
+		node.pattern = node.pattern[pos:]
+		return child.insertChild(node)
+	}
+
+	newChild := newLeaf(child.pattern[pos:], child.handlers, child.root)
+	newChild.children = child.children
+	newChild.childrenNum = child.childrenNum
+	newChild.paramChild = child.paramChild
+	newChild.wideChild = child.wideChild
+
+	// node is prefix of child
+	if pos == len(node.pattern) {
+		child.reset(node.pattern, node.handlers)
+		child.children[newChild.pattern[0]] = newChild
+		child.childrenNum++
+		return child
+	}
+
+	// child and node has same prefix
+	child.reset(pre, nil)
+	child.children[newChild.pattern[0]] = newChild
+	child.childrenNum++
+	node.pattern = node.pattern[pos:]
+	child.children[node.pattern[0]] = node
+	child.childrenNum++
 	return node
 }
 
 // resetPattern reset route pattern and alpha
-func (l *Leaf) resetPattern(pattern string) {
+func (l *leaf) reset(pattern string, handlers []HandlerFunc) {
 	l.pattern = pattern
-	l.alpha = pattern[0]
+	l.children = make([]*leaf, 128)
+	l.childrenNum = 0
+	l.paramChild = nil
+	l.wideChild = nil
+	l.param = ""
+	l.handlers = handlers
 }
 
 // hasPrefixString returns the same prefix position, if none return 0
-func (l *Leaf) hasPrefixString(s string) int {
+func (l *leaf) hasPrefixString(s string) int {
 	var i, j int
 	j = len(l.pattern)
 	if len(s) < j {
@@ -456,4 +424,43 @@ func (l *Leaf) hasPrefixString(s string) int {
 	for i = 0; i < j && s[i] == l.pattern[i]; i++ {
 	}
 	return i
+}
+
+// String returns full pattern of leaf
+func (l *leaf) String() string {
+	s := l.pattern
+	if l.kind == leafKindParam {
+		s += l.param
+	}
+	if l.parent != nil {
+		s = l.parent.String() + s
+	}
+	return s
+}
+
+// Name set name of route
+func (n *Node) Name(name string) {
+	if name == "" {
+		return
+	}
+	p := 0
+	f := make([]byte, 0, len(n.pattern))
+	for i := 0; i < len(n.pattern); i++ {
+		if n.pattern[i] != ':' {
+			f = append(f, n.pattern[i])
+			continue
+		}
+		f = append(f, '%')
+		f = append(f, 'v')
+		p++
+		for i = i + 1; i < len(n.pattern); i++ {
+			if n.pattern[i] == '/' {
+				i--
+				break
+			}
+		}
+	}
+	n.format = string(f)
+	n.paramNum = p
+	n.root.namedNodes[name] = n
 }

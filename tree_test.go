@@ -10,7 +10,7 @@ import (
 )
 
 // print the route map
-func (t *Tree) print(prefix string, root *Leaf) {
+func (t *Tree) print(prefix string, root *leaf) {
 	if root == nil {
 		for m := range t.nodes {
 			fmt.Println(m)
@@ -20,8 +20,12 @@ func (t *Tree) print(prefix string, root *Leaf) {
 	}
 	prefix = fmt.Sprintf("%s -> %s", prefix, root.pattern)
 	fmt.Println(prefix)
+	root.children = append(root.children, root.paramChild)
+	root.children = append(root.children, root.wideChild)
 	for i := range root.children {
-		t.print(prefix, root.children[i])
+		if root.children[i] != nil {
+			t.print(prefix, root.children[i])
+		}
 	}
 }
 
@@ -48,7 +52,6 @@ func TestTreeRouteAdd1(t *testing.T) {
 
 func TestTreeRouteAdd2(t *testing.T) {
 	Convey("add param route", t, func() {
-		r.Add("GET", "/", []HandlerFunc{f})
 		r.Add("GET", "/a/:id/id", []HandlerFunc{f})
 		r.Add("GET", "/a/:id/name", []HandlerFunc{f})
 		r.Add("GET", "/a", []HandlerFunc{f})
@@ -180,22 +183,22 @@ func TestTreeRouteAdd9(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("set multi method", func() {
-			b2.Route("/mul", "*", func(c *Context) {
+			b2.Route("/mul1", "*", func(c *Context) {
 				c.String(200, "mul")
 			})
-			b2.Route("/mul", "GET,HEAD,POST", func(c *Context) {
+			b2.Route("/mul2", "GET,HEAD,POST", func(c *Context) {
 				c.String(200, "mul")
 			})
-			req, _ := http.NewRequest("HEAD", "/mul", nil)
+			req, _ := http.NewRequest("HEAD", "/mul2", nil)
 			w := httptest.NewRecorder()
 			b2.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
 
-			req, _ = http.NewRequest("GET", "/mul", nil)
+			req, _ = http.NewRequest("GET", "/mul2", nil)
 			w = httptest.NewRecorder()
 			b2.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
-			req, _ = http.NewRequest("POST", "/mul", nil)
+			req, _ = http.NewRequest("POST", "/mul2", nil)
 			w = httptest.NewRecorder()
 			b2.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)

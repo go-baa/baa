@@ -21,12 +21,10 @@ const (
 	// Set this to whatever value you prefer; default is 32 MB.
 	defaultMaxMemory = 32 << 20 // 32 MB
 
-	// Charset
-
+	// CharsetUTF8 ...
 	CharsetUTF8 = "charset=utf-8"
 
 	// MediaTypes
-
 	ApplicationJSON                  = "application/json"
 	ApplicationJSONCharsetUTF8       = ApplicationJSON + "; " + CharsetUTF8
 	ApplicationJavaScript            = "application/javascript"
@@ -68,7 +66,7 @@ func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	return c
 }
 
-// reset ...
+// Reset ...
 func (c *Context) Reset(w http.ResponseWriter, r *http.Request) {
 	c.Resp.reset(w)
 	c.Req = r

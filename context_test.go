@@ -35,62 +35,62 @@ func TestContextStore1(t *testing.T) {
 func TestContextParam1(t *testing.T) {
 	Convey("context route param", t, func() {
 		Convey("param", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/p1/:id", func(c *Context) {
 				id := c.Param("id")
 				So(id, ShouldEqual, "123")
 			})
 
-			w := request("GET", "/context/123")
+			w := request("GET", "/context/p1/123")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("param int", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/p2/:id", func(c *Context) {
 				id := c.ParamInt("id")
 				So(id, ShouldEqual, 123)
 			})
 
-			w := request("GET", "/context/123")
+			w := request("GET", "/context/p2/123")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("param int32", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/p3/:id", func(c *Context) {
 				id := c.ParamInt32("id")
 				So(id, ShouldEqual, 123)
 			})
 
-			w := request("GET", "/context/123")
+			w := request("GET", "/context/p3/123")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("param int64", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/p4/:id", func(c *Context) {
 				id := c.ParamInt64("id")
 				So(id, ShouldEqual, 123)
 			})
 
-			w := request("GET", "/context/123")
+			w := request("GET", "/context/p4/123")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("param float", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/p5/:id", func(c *Context) {
 				id := c.ParamFloat("id")
 				So(id, ShouldEqual, 123.4)
 			})
 
-			w := request("GET", "/context/123.4")
+			w := request("GET", "/context/p5/123.4")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("param bool", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/p6/:id", func(c *Context) {
 				id := c.ParamBool("id")
 				So(id, ShouldEqual, true)
 			})
 
-			w := request("GET", "/context/1")
+			w := request("GET", "/context/p6/1")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 	})
@@ -99,23 +99,23 @@ func TestContextParam1(t *testing.T) {
 func TestContextQuery1(t *testing.T) {
 	Convey("context query param", t, func() {
 		Convey("query string param", func() {
-			b.Get("/context/:id", func(c *Context) {
+			b.Get("/context/1/:id", func(c *Context) {
 				id := c.Query("p")
 				So(id, ShouldEqual, "123")
 			})
 
-			w := request("GET", "/context/1?p=123")
+			w := request("GET", "/context/1/1?p=123")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
 		Convey("form string param", func() {
-			b.Post("/context/:id", func(c *Context) {
+			b.Post("/context/2/:id", func(c *Context) {
 				id := c.Query("p")
 				So(id, ShouldEqual, "123")
 			})
 			data := url.Values{}
 			data.Add("p", "123")
-			req, _ := http.NewRequest("POST", "/context/1", strings.NewReader(data.Encode()))
+			req, _ := http.NewRequest("POST", "/context/2/1", strings.NewReader(data.Encode()))
 			req.Header.Set("Content-Type", ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
@@ -123,7 +123,7 @@ func TestContextQuery1(t *testing.T) {
 		})
 
 		Convey("type param", func() {
-			b.Post("/context/:id", func(c *Context) {
+			b.Post("/context/3/:id", func(c *Context) {
 				var p interface{}
 				p = c.QueryInt("int")
 				So(p, ShouldEqual, 123)
@@ -166,7 +166,7 @@ func TestContextQuery1(t *testing.T) {
 			data.Add("strings", "abc1")
 			data.Add("strings", "abc2")
 			data.Add("escape", "<a href>string</a>")
-			req, _ := http.NewRequest("POST", "/context/1", strings.NewReader(data.Encode()))
+			req, _ := http.NewRequest("POST", "/context/3/1", strings.NewReader(data.Encode()))
 			req.Header.Set("Content-Type", ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
@@ -174,7 +174,7 @@ func TestContextQuery1(t *testing.T) {
 		})
 
 		Convey("querys/gets, not contains form data", func() {
-			b.Post("/context/:id", func(c *Context) {
+			b.Post("/context/4/:id", func(c *Context) {
 				querys := c.Querys()
 				So(querys, ShouldNotBeNil)
 				p := querys["a"].(string)
@@ -188,7 +188,7 @@ func TestContextQuery1(t *testing.T) {
 			data.Add("a", "2")
 			data.Add("b", "2")
 			data.Add("d", "2")
-			req, _ := http.NewRequest("POST", "/context/1?a=1&b=1&d=1&d=2", strings.NewReader(data.Encode()))
+			req, _ := http.NewRequest("POST", "/context/4/1?a=1&b=1&d=1&d=2", strings.NewReader(data.Encode()))
 			req.Header.Set("Content-Type", ApplicationForm)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
@@ -241,7 +241,7 @@ func TestContextFile1(t *testing.T) {
 func TestContextCookie1(t *testing.T) {
 	Convey("context cookie", t, func() {
 		Convey("cookie get", func() {
-			b.Get("/cookie", func(c *Context) {
+			b.Get("/cookie/get", func(c *Context) {
 				var p interface{}
 				p = c.GetCookie("s")
 				So(p, ShouldEqual, "123")
@@ -260,7 +260,7 @@ func TestContextCookie1(t *testing.T) {
 				p = c.GetCookie("not")
 				So(p, ShouldEqual, "")
 			})
-			req, _ := http.NewRequest("GET", "/cookie", nil)
+			req, _ := http.NewRequest("GET", "/cookie/get", nil)
 			req.Header.Set("Cookie", "s=123; int=123; int32=123; int64=123; float=123.4; bool=1; boo2=0;")
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
@@ -268,7 +268,7 @@ func TestContextCookie1(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("cookie set", func() {
-			b.Get("/cookie", func(c *Context) {
+			b.Get("/cookie/set", func(c *Context) {
 				c.SetCookie("name", "baa")
 				c.SetCookie("name", "baa", 10)
 				c.SetCookie("name", "baa", int32(10))
@@ -278,7 +278,7 @@ func TestContextCookie1(t *testing.T) {
 				c.SetCookie("name", "baa", 10, "/", "localhost", "1")
 				c.SetCookie("name", "baa", 10, "/", "localhost", true, true)
 			})
-			w := request("GET", "/cookie")
+			w := request("GET", "/cookie/set")
 			So(w.Code, ShouldEqual, http.StatusOK)
 			So(w.Header().Get("set-cookie"), ShouldContainSubstring, "name=baa;")
 		})
@@ -288,94 +288,94 @@ func TestContextCookie1(t *testing.T) {
 func TestContextWrite1(t *testing.T) {
 	Convey("context writer", t, func() {
 		Convey("write string", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/string", func(c *Context) {
 				c.String(200, "abc\n")
 			})
-			w := request("GET", "/writer?type=string")
+			w := request("GET", "/writer/string")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write byte", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/byte", func(c *Context) {
 				c.Text(200, []byte("abc\n"))
 			})
-			w := request("GET", "/writer?type=byte")
+			w := request("GET", "/writer/byte")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write JSON", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/json", func(c *Context) {
 				data := map[string]interface{}{"a": "1"}
 				c.JSON(200, data)
 			})
-			w := request("GET", "/writer?type=json")
+			w := request("GET", "/writer/json")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write JSON error", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/json/error", func(c *Context) {
 				data := f
 				c.JSON(200, data)
 			})
-			w := request("GET", "/writer?type=json")
+			w := request("GET", "/writer/json/error")
 			So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			fmt.Println(w.Body)
 		})
 		Convey("write JSONString", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/jsonstring", func(c *Context) {
 				data := map[string]interface{}{"a": "1"}
 				str, _ := c.JSONString(data)
 				c.String(200, str)
 			})
-			w := request("GET", "/writer?type=jsonstring")
+			w := request("GET", "/writer/jsonstring")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write JSONString error", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/jsonstring/error", func(c *Context) {
 				data := f
 				str, _ := c.JSONString(data)
 				c.String(200, str)
 			})
-			w := request("GET", "/writer?type=jsonstring")
+			w := request("GET", "/writer/jsonstring/error")
 			So(w.Code, ShouldEqual, http.StatusOK)
 			fmt.Println(w.Body)
 		})
 		Convey("write JSONP", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/jsonp", func(c *Context) {
 				data := map[string]interface{}{"a": "1"}
 				callback := c.Query("callback")
 				c.JSONP(200, callback, data)
 			})
-			w := request("GET", "/writer?type=jsonp&callback=callback")
+			w := request("GET", "/writer/jsonp?callback=callback")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write JSONP error", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/jsonp/error", func(c *Context) {
 				data := f
 				callback := c.Query("callback")
 				c.JSONP(200, callback, data)
 			})
-			w := request("GET", "/writer?type=jsonp&callback=callback")
+			w := request("GET", "/writer/jsonp/error?callback=callback")
 			So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			fmt.Println(w.Body)
 		})
 		Convey("write XML", func() {
-			b.Get("/writer", func(c *Context) {
-				type XmlNode struct {
+			b.Get("/writer/xml", func(c *Context) {
+				type XMLNode struct {
 					XMLName xml.Name `xml:"item"`
 					Name    string   `xml:"name"`
 					ID      int      `xml:"id,attr"`
 					Addr    string   `xml:"adr"`
 				}
-				data := &XmlNode{Name: "baa", ID: 1, Addr: "beijing"}
+				data := &XMLNode{Name: "baa", ID: 1, Addr: "beijing"}
 				c.XML(200, data)
 			})
-			w := request("GET", "/writer?type=xml")
+			w := request("GET", "/writer/xml")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write XML error", func() {
-			b.Get("/writer", func(c *Context) {
+			b.Get("/writer/xml/error", func(c *Context) {
 				data := map[string]interface{}{"name": "123"}
 				c.XML(200, data)
 			})
-			w := request("GET", "/writer?type=xml")
+			w := request("GET", "/writer/xml/error")
 			So(w.Code, ShouldEqual, http.StatusInternalServerError)
 		})
 	})
@@ -385,43 +385,19 @@ func TestContextWrite2(t *testing.T) {
 	Convey("context writer without debug mode", t, func() {
 		b.SetDebug(false)
 		Convey("write JSON", func() {
-			b.Get("/writer", func(c *Context) {
-				data := map[string]interface{}{"a": "1"}
-				c.JSON(200, data)
-			})
-			w := request("GET", "/writer?type=json")
+			w := request("GET", "/writer/json")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write JSONString", func() {
-			b.Get("/writer", func(c *Context) {
-				data := map[string]interface{}{"a": "1"}
-				str, _ := c.JSONString(data)
-				c.String(200, str)
-			})
-			w := request("GET", "/writer?type=jsonstring")
+			w := request("GET", "/writer/jsonstring")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write JSONP", func() {
-			b.Get("/writer", func(c *Context) {
-				data := map[string]interface{}{"a": "1"}
-				callback := c.Query("callback")
-				c.JSONP(200, callback, data)
-			})
-			w := request("GET", "/writer?type=jsonp&callback=callback")
+			w := request("GET", "/writer/jsonp?callback=callback")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("write XML", func() {
-			b.Get("/writer", func(c *Context) {
-				type XmlNode struct {
-					XMLName xml.Name `xml:"item"`
-					Name    string   `xml:"name"`
-					ID      int      `xml:"id,attr"`
-					Addr    string   `xml:"adr"`
-				}
-				data := &XmlNode{Name: "baa", ID: 1, Addr: "beijing"}
-				c.XML(200, data)
-			})
-			w := request("GET", "/writer?type=xml")
+			w := request("GET", "/writer/xml")
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 	})
@@ -488,11 +464,11 @@ func TestContext2(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("IsMobile false", func() {
-			b.Get("/req", func(c *Context) {
+			b.Get("/req2", func(c *Context) {
 				isMobile := c.IsMobile()
 				So(isMobile, ShouldBeFalse)
 			})
-			req, _ := http.NewRequest("GET", "/req", nil)
+			req, _ := http.NewRequest("GET", "/req2", nil)
 			req.Header.Set("User-Agent", "Mozilla/5.0 Version/9.0 Mobile/13B143 Safari/601.1")
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
@@ -507,13 +483,13 @@ func TestContext2(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 		Convey("occur error", func() {
-			b.Get("/error", func(c *Context) {
+			b.Get("/error2", func(c *Context) {
 				c.Error(nil)
 			})
 			b.Get("/notfound3", func(c *Context) {
 				c.NotFound()
 			})
-			w := request("GET", "/error")
+			w := request("GET", "/error2")
 			So(w.Code, ShouldEqual, http.StatusInternalServerError)
 			w = request("GET", "/notfound3")
 			So(w.Code, ShouldEqual, http.StatusNotFound)
