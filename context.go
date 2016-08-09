@@ -60,8 +60,8 @@ func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	c := new(Context)
 	c.Resp = NewResponse(w, b)
 	c.baa = b
-	c.pNames = make([]string, 0, 32)
-	c.pValues = make([]string, 0, 32)
+	c.pNames = make([]string, 0, 16)
+	c.pValues = make([]string, 0, 16)
 	c.handlers = make([]HandlerFunc, len(b.middleware), len(b.middleware)+3)
 	copy(c.handlers, b.middleware)
 	c.Reset(w, r)
@@ -117,6 +117,15 @@ func (c *Context) Param(name string) string {
 		}
 	}
 	return ""
+}
+
+// Params returns route params from context
+func (c *Context) Params() map[string]string {
+	m := make(map[string]string)
+	for i := 0; i < len(c.pNames); i++ {
+		m[c.pNames[i]] = c.pValues[i]
+	}
+	return m
 }
 
 // ParamInt get route param from context and format to int
