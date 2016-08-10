@@ -193,9 +193,10 @@ func (t *Tree) Add(method, pattern string, handlers []HandlerFunc) RouteNode {
 	}
 	if t.autoTrailingSlash && (len(pattern) > 1 || len(t.groups) > 0) {
 		if pattern[len(pattern)-1] == '/' {
-			pattern = pattern[:len(pattern)-1]
+			t.add(method, pattern[:len(pattern)-1], handlers)
+		} else {
+			t.add(method, pattern+"/", handlers)
 		}
-		t.add(method, pattern+"/", handlers)
 	}
 	return t.add(method, pattern, handlers)
 }
