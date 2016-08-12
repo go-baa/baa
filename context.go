@@ -492,7 +492,7 @@ func (c *Context) Redirect(code int, url string) error {
 func (c *Context) RemoteAddr() string {
 	var addr string
 	var key string
-	key = "_def:remoteAddr"
+	key = "__ctx_remoteAddr"
 	if addr, ok := c.Get(key).(string); ok {
 		return addr
 	}
