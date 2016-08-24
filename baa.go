@@ -36,9 +36,6 @@ type Baa struct {
 // Middleware middleware handler
 type Middleware interface{}
 
-// Handler context handler
-type Handler interface{}
-
 // HandlerFunc context handler func
 type HandlerFunc func(*Context)
 
