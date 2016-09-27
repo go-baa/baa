@@ -104,61 +104,72 @@ func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 	var i, l int
 	var root, nl *leaf
 	root = t.nodes[RouterMethods[method]]
+	current := root
 
 	for {
-		switch root.kind {
+		switch current.kind {
 		case leafKindStatic:
 			// static route
-			l = len(root.pattern)
+			l = len(current.pattern)
 			if l > len(pattern) {
-				return nil
+				break
 			}
-			for i := l - 1; i >= 0; i-- {
-				if root.pattern[i] != pattern[i] {
-					return nil
+			i := l - 1
+			for ; i >= 0; i-- {
+				if current.pattern[i] != pattern[i] {
+					break
 				}
 			}
-			pattern = pattern[l:]
+			if i >= 0 {
+				break
+			}
+			if len(pattern) == l || current.children[pattern[l]] != nil {
+				pattern = pattern[l:]
+				root = current
+			}
 		case leafKindParam:
 			// params route
 			l = len(pattern)
-			if root.childrenNum == 0 {
+			if current.childrenNum == 0 {
 				i = l
 			} else {
 				for i = 0; i < l && pattern[i] != '/'; i++ {
 				}
 			}
-			c.SetParam(root.param, pattern[:i])
+			c.SetParam(current.param, pattern[:i])
 			pattern = pattern[i:]
+			root = current
 		case leafKindWide:
 			// wide route
-			c.SetParam(root.param, pattern)
+			c.SetParam(current.param, pattern)
 			pattern = pattern[:0]
 		default:
 		}
 
 		if len(pattern) == 0 {
-			if root.handlers == nil {
+			if current.handlers == nil {
 				return nil
 			}
-			return root.handlers
+			return current.handlers
 		}
 
 		// children static route
-		if nl = root.children[pattern[0]]; nl != nil {
-			root = nl
-			continue
+		if current == root {
+			if nl = root.children[pattern[0]]; nl != nil {
+				current = nl
+				continue
+			}
 		}
 
 		// param route
 		if root.paramChild != nil {
-			root = root.paramChild
+			current = root.paramChild
 			continue
 		}
 
 		// wide route
 		if root.wideChild != nil {
-			root = root.wideChild
+			current = root.wideChild
 			continue
 		}
 
