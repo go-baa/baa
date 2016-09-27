@@ -123,7 +123,9 @@ func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 			if i >= 0 {
 				break
 			}
-			if len(pattern) == l || current.children[pattern[l]] != nil {
+			if len(pattern) == l || current.children[pattern[l]] != nil ||
+				current.paramChild != nil ||
+				current.wideChild != nil {
 				pattern = pattern[l:]
 				root = current
 			}
