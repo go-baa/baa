@@ -8,6 +8,9 @@ import (
 	"os"
 )
 
+// compat go net standard indexPage
+const indexPage = "/index.html"
+
 // Static provider static file serve for baa.
 type static struct {
 	handler HandlerFunc
@@ -53,13 +56,22 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 					}
 					listDir(file, s, c)
 				} else {
-					c.Resp.WriteHeader(http.StatusForbidden)
+					// check index
+					if err := serveIndex(file+indexPage, c); err != nil {
+						c.Resp.WriteHeader(http.StatusForbidden)
+					}
 				}
 				return
 			}
 		}
 
-		http.ServeFile(c.Resp, c.Req, file)
+		if len(file) >= len(indexPage) && file[len(file)-len(indexPage):] == indexPage {
+			if err := serveIndex(file, c); err != nil {
+				c.Error(err)
+			}
+		} else {
+			http.ServeFile(c.Resp, c.Req, file)
+		}
 	}
 }
 
@@ -95,4 +107,18 @@ func listDir(dir string, s *static, c *Context) {
 		fmt.Fprintf(c.Resp, "<a style=\"color:%s\" href=\"%s\">%s</a>\n", color, url.String(), template.HTMLEscapeString(name))
 	}
 	fmt.Fprintf(c.Resp, "</pre>\n")
+}
+
+func serveIndex(file string, c *Context) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	fs, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	http.ServeContent(c.Resp, c.Req, f.Name(), fs.ModTime(), f)
+	return nil
 }
