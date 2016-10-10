@@ -52,10 +52,10 @@ func TestStaticServe(t *testing.T) {
 		b.ServeHTTP(w, req)
 		So(w.Code, ShouldEqual, http.StatusFound)
 
-		req, _ = http.NewRequest("GET", "/static/index.html", nil)
+		req, _ = http.NewRequest("GET", "/static/index1.html", nil)
 		w = httptest.NewRecorder()
 		b.ServeHTTP(w, req)
-		So(w.Code, ShouldEqual, http.StatusMovedPermanently)
+		So(w.Code, ShouldEqual, http.StatusOK)
 
 		req, _ = http.NewRequest("GET", "/static/favicon.ico", nil)
 		w = httptest.NewRecorder()
