@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// compat go net standard indexPage
+// compatible with go net standard indexPage
 const indexPage = "/index.html"
 
 // Static provider static file serve for baa.
