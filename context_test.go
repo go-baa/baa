@@ -474,6 +474,17 @@ func TestContext2(t *testing.T) {
 			b.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
+		Convey("IsAJAX", func() {
+			b.Get("/req/ajax", func(c *Context) {
+				isAJAX := c.IsAJAX()
+				So(isAJAX, ShouldBeTrue)
+			})
+			req, _ := http.NewRequest("GET", "/req/ajax", nil)
+			req.Header.Set("X-Requested-With", "XMLHttpRequest")
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
 		Convey("Get URL", func() {
 			b.Get("/url", func(c *Context) {
 				So(c.URL(false), ShouldEqual, "/url")

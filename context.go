@@ -567,6 +567,11 @@ func (c *Context) IsMobile() bool {
 	return false
 }
 
+// IsAJAX returns if it is a ajax request
+func (c *Context) IsAJAX() bool {
+	return c.Req.Header.Get("X-Requested-With") == "XMLHttpRequest"
+}
+
 // parseForm ...
 func (c *Context) parseForm() {
 	if c.Req.Form != nil {
