@@ -336,6 +336,7 @@ func (b *Baa) Error(err error, c *Context) {
 	if b.debug {
 		msg = err.Error()
 	}
+	b.Logger().Println(err)
 	http.Error(c.Resp, msg, code)
 }
 
