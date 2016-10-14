@@ -460,13 +460,13 @@ func (c *Context) HTML(code int, tpl string) {
 
 // Render write render data by html template engine use context.store
 func (c *Context) Render(code int, tpl string) {
-	c.Resp.Header().Set("Content-Type", TextHTMLCharsetUTF8)
-	c.Resp.WriteHeader(code)
 	re, err := c.Fetch(tpl)
 	if err != nil {
 		c.Error(err)
 		return
 	}
+	c.Resp.Header().Set("Content-Type", TextHTMLCharsetUTF8)
+	c.Resp.WriteHeader(code)
 	c.Resp.Write(re)
 }
 
