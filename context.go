@@ -157,19 +157,19 @@ func (c *Context) ParamBool(name string) bool {
 
 // Query get a param from http.Request.Form
 func (c *Context) Query(name string) string {
-	c.parseForm()
+	c.ParseForm(0)
 	return c.Req.Form.Get(name)
 }
 
 // QueryTrim querys and trims spaces form parameter.
 func (c *Context) QueryTrim(name string) string {
-	c.parseForm()
+	c.ParseForm(0)
 	return strings.TrimSpace(c.Req.Form.Get(name))
 }
 
 // QueryStrings get a group param from http.Request.Form and format to string slice
 func (c *Context) QueryStrings(name string) []string {
-	c.parseForm()
+	c.ParseForm(0)
 	if v, ok := c.Req.Form[name]; ok {
 		return v
 	}
@@ -178,13 +178,13 @@ func (c *Context) QueryStrings(name string) []string {
 
 // QueryEscape returns escapred query result.
 func (c *Context) QueryEscape(name string) string {
-	c.parseForm()
+	c.ParseForm(0)
 	return template.HTMLEscapeString(c.Req.Form.Get(name))
 }
 
 // QueryInt get a param from http.Request.Form and format to int
 func (c *Context) QueryInt(name string) int {
-	c.parseForm()
+	c.ParseForm(0)
 	v, _ := strconv.Atoi(c.Req.Form.Get(name))
 	return v
 }
@@ -196,21 +196,21 @@ func (c *Context) QueryInt32(name string) int32 {
 
 // QueryInt64 get a param from http.Request.Form and format to int64
 func (c *Context) QueryInt64(name string) int64 {
-	c.parseForm()
+	c.ParseForm(0)
 	v, _ := strconv.ParseInt(c.Req.Form.Get(name), 10, 64)
 	return v
 }
 
 // QueryFloat get a param from http.Request.Form and format to float64
 func (c *Context) QueryFloat(name string) float64 {
-	c.parseForm()
+	c.ParseForm(0)
 	v, _ := strconv.ParseFloat(c.Req.Form.Get(name), 64)
 	return v
 }
 
 // QueryBool get a param from http.Request.Form and format to bool
 func (c *Context) QueryBool(name string) bool {
-	c.parseForm()
+	c.ParseForm(0)
 	v, _ := strconv.ParseBool(c.Req.Form.Get(name))
 	return v
 }
@@ -234,7 +234,7 @@ func (c *Context) Querys() map[string]interface{} {
 
 // Posts return http.Request form data
 func (c *Context) Posts() map[string]interface{} {
-	c.parseForm()
+	c.ParseForm(0)
 	params := make(map[string]interface{})
 	data := c.Req.PostForm
 	if len(data) == 0 && len(c.Req.Form) > 0 {
@@ -572,15 +572,19 @@ func (c *Context) IsAJAX() bool {
 	return c.Req.Header.Get("X-Requested-With") == "XMLHttpRequest"
 }
 
-// parseForm ...
-func (c *Context) parseForm() {
+// ParseForm parses a request body as multipart/form-data or
+//	parses the raw query from the URL and updates r.Form.
+func (c *Context) ParseForm(maxSize int64) {
 	if c.Req.Form != nil {
 		return
 	}
 	contentType := c.Req.Header.Get("Content-Type")
 	if (c.Req.Method == "POST" || c.Req.Method == "PUT") &&
 		len(contentType) > 0 && strings.Contains(contentType, MultipartForm) {
-		c.Req.ParseMultipartForm(defaultMaxMemory)
+		if maxSize == 0 {
+			maxSize = defaultMaxMemory
+		}
+		c.Req.ParseMultipartForm(maxSize)
 	} else {
 		c.Req.ParseForm()
 	}
