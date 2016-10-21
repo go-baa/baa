@@ -234,7 +234,9 @@ func (c *Context) Querys() map[string]interface{} {
 
 // Posts return http.Request form data
 func (c *Context) Posts() map[string]interface{} {
-	c.ParseForm(0)
+	if err := c.ParseForm(0); err != nil {
+		return nil
+	}
 	params := make(map[string]interface{})
 	data := c.Req.PostForm
 	if len(data) == 0 && len(c.Req.Form) > 0 {
@@ -252,6 +254,9 @@ func (c *Context) Posts() map[string]interface{} {
 
 // GetFile returns information about user upload file by given form field name.
 func (c *Context) GetFile(name string) (multipart.File, *multipart.FileHeader, error) {
+	if err := c.ParseForm(0); err != nil {
+		return nil, nil, err
+	}
 	return c.Req.FormFile(name)
 }
 
@@ -574,9 +579,9 @@ func (c *Context) IsAJAX() bool {
 
 // ParseForm parses a request body as multipart/form-data or
 //	parses the raw query from the URL and updates r.Form.
-func (c *Context) ParseForm(maxSize int64) {
+func (c *Context) ParseForm(maxSize int64) error {
 	if c.Req.Form != nil {
-		return
+		return nil
 	}
 	contentType := c.Req.Header.Get("Content-Type")
 	if (c.Req.Method == "POST" || c.Req.Method == "PUT") &&
@@ -584,10 +589,9 @@ func (c *Context) ParseForm(maxSize int64) {
 		if maxSize == 0 {
 			maxSize = defaultMaxMemory
 		}
-		c.Req.ParseMultipartForm(maxSize)
-	} else {
-		c.Req.ParseForm()
+		return c.Req.ParseMultipartForm(maxSize)
 	}
+	return c.Req.ParseForm()
 }
 
 // Next execute next handler
