@@ -223,6 +223,15 @@ func (b *Baa) Static(prefix string, dir string, index bool, h HandlerFunc) {
 	b.Get(prefix+"*", staticHandler)
 }
 
+// StaticFile shortcut for serve file
+func (b *Baa) StaticFile(pattern string, path string, h HandlerFunc) RouteNode {
+	return b.Get(pattern, func(c *Context) {
+		if err := serveFile(path, c); err != nil {
+			c.Error(err)
+		}
+	}, h)
+}
+
 // SetAutoHead sets the value who determines whether add HEAD method automatically
 // when GET method is added. Combo router will not be affected by this value.
 func (b *Baa) SetAutoHead(v bool) {

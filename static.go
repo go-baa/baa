@@ -57,7 +57,7 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 					listDir(file, s, c)
 				} else {
 					// check index
-					if err := serveIndex(file+indexPage, c); err != nil {
+					if err := serveFile(file+indexPage, c); err != nil {
 						c.Resp.WriteHeader(http.StatusForbidden)
 					}
 				}
@@ -66,7 +66,7 @@ func newStatic(prefix, dir string, index bool, h HandlerFunc) HandlerFunc {
 		}
 
 		if len(file) >= len(indexPage) && file[len(file)-len(indexPage):] == indexPage {
-			if err := serveIndex(file, c); err != nil {
+			if err := serveFile(file, c); err != nil {
 				c.Error(err)
 			}
 		} else {
@@ -109,7 +109,7 @@ func listDir(dir string, s *static, c *Context) {
 	fmt.Fprintf(c.Resp, "</pre>\n")
 }
 
-func serveIndex(file string, c *Context) error {
+func serveFile(file string, c *Context) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -118,6 +118,9 @@ func serveIndex(file string, c *Context) error {
 	fs, err := f.Stat()
 	if err != nil {
 		return err
+	}
+	if fs.IsDir() {
+		return fmt.Errorf("given path is dir, not file")
 	}
 	http.ServeContent(c.Resp, c.Req, f.Name(), fs.ModTime(), f)
 	return nil
