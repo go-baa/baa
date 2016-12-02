@@ -218,9 +218,7 @@ func (b *Baa) Static(prefix string, dir string, index bool, h HandlerFunc) {
 	if dir == "" {
 		panic("baa.Static dir can not be empty")
 	}
-	staticHandler := newStatic(prefix, dir, index, h)
-	b.Get(prefix, staticHandler)
-	b.Get(prefix+"*", staticHandler)
+	b.Get(prefix+"*", newStatic(prefix, dir, index, h))
 }
 
 // StaticFile shortcut for serve file

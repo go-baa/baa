@@ -149,17 +149,19 @@ func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 		}
 
 		if len(pattern) == 0 {
-			if current.handlers == nil {
+			if current.handlers != nil {
+				return current.handlers
+			}
+			if root.paramChild == nil && root.wideChild == nil {
 				return nil
 			}
-			return current.handlers
-		}
-
-		// children static route
-		if current == root {
-			if nl = root.children[pattern[0]]; nl != nil {
-				current = nl
-				continue
+		} else {
+			// children static route
+			if current == root {
+				if nl = root.children[pattern[0]]; nl != nil {
+					current = nl
+					continue
+				}
 			}
 		}
 
@@ -207,6 +209,8 @@ func (t *Tree) Add(method, pattern string, handlers []HandlerFunc) RouteNode {
 	if t.autoTrailingSlash && (len(pattern) > 1 || len(t.groups) > 0) {
 		if pattern[len(pattern)-1] == '/' {
 			t.add(method, pattern[:len(pattern)-1], handlers)
+		} else if pattern[len(pattern)-1] == '*' {
+			// wideChild not need trail slash
 		} else {
 			t.add(method, pattern+"/", handlers)
 		}
