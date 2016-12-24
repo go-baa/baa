@@ -222,12 +222,12 @@ func (b *Baa) Static(prefix string, dir string, index bool, h HandlerFunc) {
 }
 
 // StaticFile shortcut for serve file
-func (b *Baa) StaticFile(pattern string, path string, h HandlerFunc) RouteNode {
+func (b *Baa) StaticFile(pattern string, path string) RouteNode {
 	return b.Get(pattern, func(c *Context) {
 		if err := serveFile(path, c); err != nil {
 			c.Error(err)
 		}
-	}, h)
+	})
 }
 
 // SetAutoHead sets the value who determines whether add HEAD method automatically

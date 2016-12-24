@@ -609,7 +609,11 @@ func (c *Context) Next() {
 	}
 	i := c.hi
 	c.hi++
-	c.handlers[i](c)
+	if c.handlers[i] != nil {
+		c.handlers[i](c)
+	} else {
+		c.Next()
+	}
 }
 
 // Break break the handles chain and Immediate return
