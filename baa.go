@@ -75,7 +75,7 @@ func Instance(name string) *Baa {
 	}
 	if appInstances[name] == nil {
 		appInstances[name] = New()
-		appInstances[name].name = defaultAppName
+		appInstances[name].name = name
 	}
 	return appInstances[name]
 }
