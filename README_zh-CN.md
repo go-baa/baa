@@ -51,7 +51,7 @@ https://github.com/go-baa/example
 ## 中间件
 
 * [gzip](https://github.com/baa-middleware/gzip)
-* [logger](https://github.com/baa-middleware/logger)
+* [accesslog](https://github.com/baa-middleware/accesslog)
 * [recovery](https://github.com/baa-middleware/recovery)
 * [session](https://github.com/baa-middleware/session)
 * [static](https://github.com/baa-middleware/static)
