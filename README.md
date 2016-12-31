@@ -43,6 +43,11 @@ func main() {
 * centralized log handling
 * whichever template engine support(emplement baa.Renderer)
 
+## Examples
+
+https://github.com/go-baa/example
+
+* [blog](https://github.com/go-baa/example/tree/master/blog)
 
 ## Middlewares
 
@@ -50,11 +55,18 @@ func main() {
 * [logger](https://github.com/baa-middleware/logger)
 * [recovery](https://github.com/baa-middleware/recovery)
 * [session](https://github.com/baa-middleware/session)
+* [static](https://github.com/baa-middleware/static)
+* [requestcache](https://github.com/baa-middleware/requestcache)
+* [nocache](https://github.com/baa-middleware/nocache)
 
 ## Components
 
 * [cache](https://github.com/go-baa/cache)
 * [render](https://github.com/go-baa/render)
+* [pongo2](https://github.com/go-baa/pongo2)
+* [router](https://github.com/go-baa/router)
+* [pool](https://github.com/go-baa/pool)
+* [bat](https://github.com/go-baa/bat)
 
 ## Performance
 

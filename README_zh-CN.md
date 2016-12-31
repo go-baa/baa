@@ -42,17 +42,30 @@ func main() {
 * 统一的日志处理
 * 支持任意更换模板引擎（实现baa.Renderer接口即可）
 
+## 示例
+
+https://github.com/go-baa/example
+
+* [blog](https://github.com/go-baa/example/tree/master/blog)
+
 ## 中间件
 
 * [gzip](https://github.com/baa-middleware/gzip)
 * [logger](https://github.com/baa-middleware/logger)
 * [recovery](https://github.com/baa-middleware/recovery)
 * [session](https://github.com/baa-middleware/session)
+* [static](https://github.com/baa-middleware/static)
+* [requestcache](https://github.com/baa-middleware/requestcache)
+* [nocache](https://github.com/baa-middleware/nocache)
 
-## 组件(DI)
+## 组件
 
 * [cache](https://github.com/go-baa/cache)
 * [render](https://github.com/go-baa/render)
+* [pongo2](https://github.com/go-baa/pongo2)
+* [router](https://github.com/go-baa/router)
+* [pool](https://github.com/go-baa/pool)
+* [bat](https://github.com/go-baa/bat)
 
 ## 性能测试
 
