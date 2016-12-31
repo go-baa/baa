@@ -105,7 +105,7 @@ Baa:
 package main
 
 import (
-	"github.com/baa-middleware/logger"
+	"github.com/baa-middleware/accesslog"
 	"github.com/baa-middleware/recovery"
 	"gopkg.in/baa.v1"
 )
@@ -116,7 +116,7 @@ func hello(c *baa.Context) {
 
 func main() {
 	b := baa.New()
-	b.Use(logger.Logger())
+	b.Use(accesslog.Logger())
 	b.Use(recovery.Recovery())
 
 	b.Get("/", hello)
