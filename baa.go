@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -308,6 +310,27 @@ func (b *Baa) Post(pattern string, h ...HandlerFunc) RouteNode {
 // Put is a shortcut for b.Route(pattern, "Put", handlers)
 func (b *Baa) Put(pattern string, h ...HandlerFunc) RouteNode {
 	return b.Router().Add("PUT", pattern, h)
+}
+
+// Websocket register a websocket router handler
+func (b *Baa) Websocket(pattern string, h func(*websocket.Conn)) RouteNode {
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:    4096,
+		WriteBufferSize:   4096,
+		EnableCompression: true,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	return b.Route(pattern, "GET,POST", func(c *Context) {
+		conn, err := upgrader.Upgrade(c.Resp, c.Req, nil)
+		if err != nil {
+			b.Logger().Panicf("websocket upgrade connection error: %v", err)
+			return
+		}
+		h(conn)
+	})
 }
 
 // SetNotFound set not found route handler
