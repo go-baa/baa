@@ -4,6 +4,12 @@
 
 Baa 不使用 ``反射``和``正则``，没有魔法的实现。
 
+## document
+
+* [简体中文](https://github.com/go-baa/doc/tree/master/zh-CN)
+* [English](https://github.com/go-baa/doc/tree/master/en-US)
+* [godoc](https://godoc.org/github.com/go-baa/baa)
+
 ## 快速上手
 
 安装：
@@ -35,7 +41,7 @@ func main() {
 * 支持静态路由、参数路由、组路由（前缀路由/命名空间）和路由命名
 * 路由支持链式操作
 * 路由支持文件/目录服务
-* 支持中间件和链式操作
+* 中间件支持链式操作
 * 支持依赖注入*
 * 支持JSON/JSONP/XML/HTML格式输出
 * 统一的HTTP错误处理

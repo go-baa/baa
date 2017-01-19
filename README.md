@@ -4,8 +4,13 @@ an express Go web framework with routing, middleware, dependency injection, http
 
 Baa is ``no reflect``, ``no regexp``.
 
-## Getting Started
+## document
 
+* [简体中文](https://github.com/go-baa/doc/tree/master/zh-CN)
+* [English](https://github.com/go-baa/doc/tree/master/en-US)
+* [godoc](https://godoc.org/github.com/go-baa/baa)
+
+## Getting Started
 
 Install:
 
