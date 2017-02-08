@@ -21,6 +21,7 @@ go get -u gopkg.in/baa.v1
 Example:
 
 ```
+// baa.go
 package main
 
 import (
@@ -34,6 +35,18 @@ func main() {
     })
     app.Run(":1323")
 }
+```
+
+Run:
+
+```
+go run baa.go
+```
+
+Explore:
+
+```
+http://127.0.0.1:1323/
 ```
 
 ## Features
@@ -53,6 +66,7 @@ func main() {
 https://github.com/go-baa/example
 
 * [blog](https://github.com/go-baa/example/tree/master/blog)
+* [websocket](https://github.com/go-baa/example/tree/master/websocket)
 
 ## Middlewares
 
@@ -74,12 +88,6 @@ https://github.com/go-baa/example
 * [bat](https://github.com/go-baa/bat)
 
 ## Performance
-
-diff with the fast framework [Echo](https://github.com/labstack/echo)
-
-> Note：
-
-[Echo](https://github.com/labstack/echo) use fasthttp in V2，here use [Echo V1](https://github.com/labstack/echo/releases/tag/v1.4) for test。
 
 ### Route Test
 
@@ -111,99 +119,35 @@ Baa:
 package main
 
 import (
-	"github.com/baa-middleware/accesslog"
-	"github.com/baa-middleware/recovery"
 	"gopkg.in/baa.v1"
 )
 
-func hello(c *baa.Context) {
-	c.String(200, "Hello, World!\n")
-}
-
 func main() {
-	b := baa.New()
-	b.Use(accesslog.Logger())
-	b.Use(recovery.Recovery())
-
-	b.Get("/", hello)
-
-	b.Run(":8001")
-}
-```
-
-Echo:
-
-```
-package main
-
-import (
-	"github.com/labstack/echo"
-	mw "github.com/labstack/echo/middleware"
-)
-
-// Handler
-func hello(c *echo.Context) error {
-	return c.String(200, "Hello, World!\n")
-}
-
-func main() {
-	// Echo instance
-	e := echo.New()
-
-	// Middleware
-	e.Use(mw.Logger())
-
-	// Routes
-	e.Get("/", hello)
-
-	// Start server
-	e.Run(":8001")
+	app := baa.New()
+    app.Get("/", func(c *baa.Context) {
+        c.String(200, "Hello, 世界")
+    })
+    app.Run(":1323")
 }
 ```
 
 #### Result:
 
-> Baa http test is almost better than Echo.
-
-Baa:
-
 ```
-$ wrk -t 10 -c 100 -d 30 http://127.0.0.1:8001/
-Running 30s test @ http://127.0.0.1:8001/
+$ wrk -t 10 -c 100 -d 30 http://127.0.0.1:1323/
+Running 30s test @ http://127.0.0.1:1323/
   10 threads and 100 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.92ms    1.43ms  55.26ms   90.86%
-    Req/Sec     5.46k   257.26     6.08k    88.30%
-  1629324 requests in 30.00s, 203.55MB read
-Requests/sec:  54304.14
-Transfer/sec:      6.78MB
+    Latency     1.64ms  299.23us   8.25ms   66.84%
+    Req/Sec     6.11k   579.08     8.72k    68.74%
+  1827365 requests in 30.10s, 228.30MB read
+Requests/sec:  60704.90
+Transfer/sec:      7.58MB
 ```
-
-Echo:
-
-```
-$ wrk -t 10 -c 100 -d 30 http://127.0.0.1:8001/
-Running 30s test @ http://127.0.0.1:8001/
-  10 threads and 100 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     2.83ms    3.76ms  98.38ms   90.20%
-    Req/Sec     4.79k     0.88k   45.22k    96.27%
-  1431144 requests in 30.10s, 178.79MB read
-Requests/sec:  47548.11
-Transfer/sec:      5.94MB
-```
-
 
 ## Use Cases
 
 vodjk private projects.
-
-## Guide
-
-[godoc](http://godoc.org/github.com/go-baa/baa)
-
-[document](#)
-
 
 ## Credits
 
