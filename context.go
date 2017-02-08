@@ -578,7 +578,7 @@ func (c *Context) IsAJAX() bool {
 }
 
 // ParseForm parses a request body as multipart/form-data or
-//	parses the raw query from the URL and updates r.Form.
+// parses the raw query from the URL and updates r.Form.
 func (c *Context) ParseForm(maxSize int64) error {
 	if c.Req.Form != nil {
 		return nil
