@@ -66,6 +66,7 @@ http://127.0.0.1:1323/
 https://github.com/go-baa/example
 
 * [blog](https://github.com/go-baa/example/tree/master/blog)
+* [api](https://github.com/go-baa/example/tree/master/api)
 * [websocket](https://github.com/go-baa/example/tree/master/websocket)
 
 ## Middlewares
