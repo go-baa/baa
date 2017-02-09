@@ -87,6 +87,8 @@ https://github.com/go-baa/example
 * [router](https://github.com/go-baa/router)
 * [pool](https://github.com/go-baa/pool)
 * [bat](https://github.com/go-baa/bat)
+* [log](https://github.com/go-baa/log)
+* [setting](https://github.com/go-baa/setting)
 
 ## 性能测试
 
