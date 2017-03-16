@@ -501,14 +501,22 @@ func (c *Context) RemoteAddr() string {
 	if addr, ok := c.Get(key).(string); ok {
 		return addr
 	}
-	addr = c.Req.Header.Get("X-Real-IP")
-	if addr == "" {
-		addr = c.Req.Header.Get("X-Forwarded-For")
-		if addr == "" {
-			addr = c.Req.RemoteAddr
-			addr, _, _ = net.SplitHostPort(addr)
+
+	for _, k := range []string{"Ali-Cdn-Real-Ip", "X-Real-IP", "X-Forwarded-For"} {
+		if addr = c.Req.Header.Get(k); addr != "" {
+			if strings.Contains(addr, ",") {
+				addrs := strings.Split(addr, ",")
+				addr = addrs[0]
+			}
+			break
 		}
 	}
+
+	if addr == "" {
+		addr = c.Req.RemoteAddr
+		addr, _, _ = net.SplitHostPort(addr)
+	}
+
 	c.Set(key, addr)
 	return addr
 }
