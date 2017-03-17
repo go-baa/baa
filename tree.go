@@ -19,7 +19,7 @@ type Tree struct {
 	groups            []*group
 	nodes             [RouteLength]*leaf
 	baa               *Baa
-	namedNodes        map[string]*Node
+	nameNodes         map[string]*Node
 }
 
 // Node is struct for named route
@@ -27,6 +27,7 @@ type Node struct {
 	paramNum int
 	pattern  string
 	format   string
+	name     string
 	root     *Tree
 }
 
@@ -42,6 +43,7 @@ type leaf struct {
 	wideChild   *leaf
 	parent      *leaf
 	root        *Tree
+	nameNode    *Node
 }
 
 // group route
@@ -56,7 +58,7 @@ func NewTree(b *Baa) Router {
 	for i := 0; i < len(t.nodes); i++ {
 		t.nodes[i] = newLeaf("/", nil, t)
 	}
-	t.namedNodes = make(map[string]*Node)
+	t.nameNodes = make(map[string]*Node)
 	t.groups = make([]*group, 0)
 	t.baa = b
 	return t
@@ -99,8 +101,8 @@ func (t *Tree) SetAutoTrailingSlash(v bool) {
 	t.autoTrailingSlash = v
 }
 
-// Match find matched route and returns handlerss
-func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
+// Match find matched route then returns handlers and name
+func (t *Tree) Match(method, pattern string, c *Context) ([]HandlerFunc, string) {
 	var i, l int
 	var root, nl *leaf
 	root = t.nodes[RouterMethods[method]]
@@ -150,10 +152,13 @@ func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 
 		if len(pattern) == 0 {
 			if current.handlers != nil {
-				return current.handlers
+				if current.nameNode != nil {
+					return current.handlers, current.nameNode.name
+				}
+				return current.handlers, ""
 			}
 			if root.paramChild == nil && root.wideChild == nil {
-				return nil
+				return nil, ""
 			}
 		} else {
 			// children static route
@@ -180,7 +185,7 @@ func (t *Tree) Match(method, pattern string, c *Context) []HandlerFunc {
 		break
 	}
 
-	return nil
+	return nil, ""
 }
 
 // URLFor use named route return format url
@@ -188,7 +193,7 @@ func (t *Tree) URLFor(name string, args ...interface{}) string {
 	if name == "" {
 		return ""
 	}
-	node := t.namedNodes[name]
+	node := t.nameNodes[name]
 	if node == nil || len(node.format) == 0 {
 		return ""
 	}
@@ -268,11 +273,13 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) RouteNode {
 
 	root := t.nodes[RouterMethods[method]]
 	origPattern := pattern
+	nameNode := NewNode(origPattern, t)
 
 	// specialy route = /
 	if len(pattern) == 1 {
 		root.handlers = handlers
-		return NewNode(origPattern, t)
+		root.nameNode = nameNode
+		return nameNode
 	}
 
 	// left trim slash, because root is slash /
@@ -292,6 +299,7 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) RouteNode {
 			}
 			tl = newLeaf("*", handlers, t)
 			tl.kind = leafKindWide
+			tl.nameNode = nameNode
 			root.insertChild(tl)
 			break
 		}
@@ -320,6 +328,7 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) RouteNode {
 			// check last character
 			if i == len(pattern) {
 				tl = newLeaf(":", handlers, t)
+				tl.nameNode = nameNode
 			} else {
 				tl = newLeaf(":", nil, t)
 			}
@@ -334,10 +343,11 @@ func (t *Tree) add(method, pattern string, handlers []HandlerFunc) RouteNode {
 	// static route
 	if len(radix) > 0 {
 		tl = newLeaf(string(radix), handlers, t)
+		tl.nameNode = nameNode
 		root.insertChild(tl)
 	}
 
-	return NewNode(origPattern, t)
+	return nameNode
 }
 
 // insertChild insert child into root route, and returns the child route
@@ -365,6 +375,7 @@ func (l *leaf) insertChild(node *leaf) *leaf {
 				panic("Router Tree.insert error: cannot twice set handler for same route")
 			}
 			l.paramChild.handlers = node.handlers
+			l.paramChild.nameNode = node.nameNode
 		}
 		return l.paramChild
 	}
@@ -388,6 +399,7 @@ func (l *leaf) insertChild(node *leaf) *leaf {
 					panic("Router Tree.insert error: cannot twice set handler for same route")
 				}
 				child.handlers = node.handlers
+				child.nameNode = node.nameNode
 			}
 			return child
 		}
@@ -398,6 +410,7 @@ func (l *leaf) insertChild(node *leaf) *leaf {
 	}
 
 	newChild := newLeaf(child.pattern[pos:], child.handlers, child.root)
+	newChild.nameNode = child.nameNode
 	newChild.children = child.children
 	newChild.childrenNum = child.childrenNum
 	newChild.paramChild = child.paramChild
@@ -406,6 +419,7 @@ func (l *leaf) insertChild(node *leaf) *leaf {
 	// node is prefix of child
 	if pos == len(node.pattern) {
 		child.reset(node.pattern, node.handlers)
+		child.nameNode = node.nameNode
 		child.children[newChild.pattern[0]] = newChild
 		child.childrenNum++
 		return child
@@ -428,6 +442,7 @@ func (l *leaf) reset(pattern string, handlers []HandlerFunc) {
 	l.childrenNum = 0
 	l.paramChild = nil
 	l.wideChild = nil
+	l.nameNode = nil
 	l.param = ""
 	l.handlers = handlers
 }
@@ -480,5 +495,6 @@ func (n *Node) Name(name string) {
 	}
 	n.format = string(f)
 	n.paramNum = p
-	n.root.namedNodes[name] = n
+	n.name = name
+	n.root.nameNodes[name] = n
 }

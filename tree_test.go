@@ -108,6 +108,9 @@ func TestTreeRouteAdd5(t *testing.T) {
 		So(url, ShouldEqual, "")
 		url = b.URLFor("not exits", "no")
 		So(url, ShouldEqual, "")
+		ru, name := r.Match("GET", "/article/123/show", c)
+		So(ru, ShouldNotBeNil)
+		So(name, ShouldEqual, "articleShow")
 	})
 }
 
@@ -222,34 +225,34 @@ func TestTreeRouteAdd9(t *testing.T) {
 func TestTreeRouteMatch1(t *testing.T) {
 	Convey("match route", t, func() {
 
-		ru := r.Match("GET", "/", c)
+		ru, _ := r.Match("GET", "/", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/abc/1234", c)
+		ru, _ = r.Match("GET", "/abc/1234", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.Match("GET", "xxx", c)
+		ru, _ = r.Match("GET", "xxx", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.Match("GET", "/a/123/id", c)
+		ru, _ = r.Match("GET", "/a/123/id", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/p/yst/file/a.jpg", c)
+		ru, _ = r.Match("GET", "/p/yst/file/a.jpg", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/user/info", c)
+		ru, _ = r.Match("GET", "/user/info", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/user/pass", c)
+		ru, _ = r.Match("GET", "/user/pass", c)
 		So(ru, ShouldNotBeNil)
 
-		ru = r.Match("GET", "/user/pass32", c)
+		ru, _ = r.Match("GET", "/user/pass32", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.Match("GET", "/user/xxx", c)
+		ru, _ = r.Match("GET", "/user/xxx", c)
 		So(ru, ShouldBeNil)
 
-		ru = r.Match("GET", "/xxxx", c)
+		ru, _ = r.Match("GET", "/xxxx", c)
 		So(ru, ShouldBeNil)
 
 		b.Get("/notifications/threads/:id", f)
@@ -257,9 +260,9 @@ func TestTreeRouteMatch1(t *testing.T) {
 		b.Get("/notifications/threads/:id/subc", f)
 		b.Put("/notifications/threads/:id/subscription", f)
 		b.Delete("/notifications/threads/:id/subscription", f)
-		ru = r.Match("GET", "/notifications/threads/:id", c)
+		ru, _ = r.Match("GET", "/notifications/threads/:id", c)
 		So(ru, ShouldNotBeNil)
-		ru = r.Match("GET", "/notifications/threads/:id/sub", c)
+		ru, _ = r.Match("GET", "/notifications/threads/:id/sub", c)
 		So(ru, ShouldBeNil)
 	})
 }

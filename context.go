@@ -43,14 +43,15 @@ const (
 // Context provlider a HTTP context for baa
 // context contains reqest, response, header, cookie and some content type.
 type Context struct {
-	Req      *http.Request
-	Resp     *Response
-	baa      *Baa
-	store    map[string]interface{}
-	pNames   []string      // route params names
-	pValues  []string      // route params values
-	handlers []HandlerFunc // middleware handler and route match handler
-	hi       int           // handlers execute position
+	Req       *http.Request
+	Resp      *Response
+	baa       *Baa
+	store     map[string]interface{}
+	routeName string        // route name
+	pNames    []string      // route params names
+	pValues   []string      // route params values
+	handlers  []HandlerFunc // middleware handler and route match handler
+	hi        int           // handlers execute position
 }
 
 // NewContext create a http context
@@ -66,12 +67,18 @@ func NewContext(w http.ResponseWriter, r *http.Request, b *Baa) *Context {
 	return c
 }
 
+// RouteName return context matched route name
+func (c *Context) RouteName() string {
+	return c.routeName
+}
+
 // Reset ...
 func (c *Context) Reset(w http.ResponseWriter, r *http.Request) {
 	c.Resp.reset(w)
 	c.Req = r
 	c.hi = 0
 	c.handlers = c.handlers[:len(c.baa.middleware)]
+	c.routeName = ""
 	c.pNames = c.pNames[:0]
 	c.pValues = c.pValues[:0]
 	c.store = nil
