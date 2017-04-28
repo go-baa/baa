@@ -13,7 +13,7 @@ type DIer interface {
 // DI provlider a dependency injection service for baa
 type DI struct {
 	store map[string]interface{}
-	rw    sync.RWMutex
+	mutex sync.RWMutex
 }
 
 // NewDI create a DI instance
@@ -26,15 +26,15 @@ func NewDI() DIer {
 // Set register a di
 // baa dependency injection must be the special interface
 func (d *DI) Set(name string, v interface{}) {
-	d.rw.Lock()
+	d.mutex.Lock()
 	d.store[name] = v
-	d.rw.Unlock()
+	d.mutex.Unlock()
 }
 
 // Get fetch a di by name, return nil when name not set.
 func (d *DI) Get(name string) interface{} {
-	d.rw.RLock()
+	d.mutex.RLock()
 	v := d.store[name]
-	d.rw.RUnlock()
+	d.mutex.RUnlock()
 	return v
 }
