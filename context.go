@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -43,15 +44,16 @@ const (
 // Context provlider a HTTP context for baa
 // context contains reqest, response, header, cookie and some content type.
 type Context struct {
-	Req       *http.Request
-	Resp      *Response
-	baa       *Baa
-	store     map[string]interface{}
-	routeName string        // route name
-	pNames    []string      // route params names
-	pValues   []string      // route params values
-	handlers  []HandlerFunc // middleware handler and route match handler
-	hi        int           // handlers execute position
+	Req        *http.Request
+	Resp       *Response
+	baa        *Baa
+	store      map[string]interface{}
+	storeMutex sync.RWMutex  // store rw lock
+	routeName  string        // route name
+	pNames     []string      // route params names
+	pValues    []string      // route params values
+	handlers   []HandlerFunc // middleware handler and route match handler
+	hi         int           // handlers execute position
 }
 
 // NewContext create a http context
@@ -81,19 +83,25 @@ func (c *Context) Reset(w http.ResponseWriter, r *http.Request) {
 	c.routeName = ""
 	c.pNames = c.pNames[:0]
 	c.pValues = c.pValues[:0]
+	c.storeMutex.Lock()
 	c.store = nil
+	c.storeMutex.Unlock()
 }
 
 // Set store data in context
 func (c *Context) Set(key string, v interface{}) {
+	c.storeMutex.Lock()
 	if c.store == nil {
 		c.store = make(map[string]interface{})
 	}
 	c.store[key] = v
+	c.storeMutex.Unlock()
 }
 
 // Get returns data from context
 func (c *Context) Get(key string) interface{} {
+	c.storeMutex.RLock()
+	defer c.storeMutex.RUnlock()
 	if c.store == nil {
 		return nil
 	}
@@ -102,10 +110,13 @@ func (c *Context) Get(key string) interface{} {
 
 // Gets returns data map from content store
 func (c *Context) Gets() map[string]interface{} {
-	if c.store == nil {
-		c.store = make(map[string]interface{})
+	c.storeMutex.RLock()
+	vals := make(map[string]interface{})
+	for k, v := range c.store {
+		vals[k] = v
 	}
-	return c.store
+	c.storeMutex.RUnlock()
+	return vals
 }
 
 // SetParam read route param value from uri
@@ -485,7 +496,8 @@ func (c *Context) Render(code int, tpl string) {
 // Fetch render data by html template engine use context.store and returns data
 func (c *Context) Fetch(tpl string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	if err := c.baa.Render().Render(buf, tpl, c.store); err != nil {
+
+	if err := c.baa.Render().Render(buf, tpl, c.Gets()); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
