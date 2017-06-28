@@ -289,7 +289,7 @@ func TestTreeRoutePrint3(t *testing.T) {
 	Convey("print named routes", t, func() {
 		fmt.Println("")
 		for name, route := range r.NamedRoutes() {
-			fmt.Printf("%20s \t %s", name, route)
+			fmt.Printf("%20s \t %s\n", name, route)
 		}
 	})
 }
