@@ -12,7 +12,7 @@ const (
 	RouteLength
 )
 
-// RouterMethods declare method key in routeMap
+// RouterMethods declare method key in route table
 var RouterMethods = map[string]int{
 	"GET":     GET,
 	"POST":    POST,
@@ -21,6 +21,17 @@ var RouterMethods = map[string]int{
 	"PATCH":   PATCH,
 	"OPTIONS": OPTIONS,
 	"HEAD":    HEAD,
+}
+
+// RouterMethodName declare method name with route table key
+var RouterMethodName = map[int]string{
+	GET:     "GET",
+	POST:    "POST",
+	PUT:     "PUT",
+	DELETE:  "DELETE",
+	PATCH:   "PATCH",
+	OPTIONS: "OPTIONS",
+	HEAD:    "HEAD",
 }
 
 // Router is an router interface for baa
@@ -38,6 +49,10 @@ type Router interface {
 	Add(method, pattern string, handlers []HandlerFunc) RouteNode
 	// GroupAdd registers a list of same prefix route
 	GroupAdd(pattern string, f func(), handlers []HandlerFunc)
+	// Routes returns registered route uri in a string slice
+	Routes() map[string][]string
+	// NamedRoutes returns named route uri in a string slice
+	NamedRoutes() map[string]string
 }
 
 // RouteNode is an router node

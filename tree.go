@@ -41,7 +41,6 @@ type leaf struct {
 	childrenNum uint
 	paramChild  *leaf
 	wideChild   *leaf
-	parent      *leaf
 	root        *Tree
 	nameNode    *Node
 }
@@ -203,6 +202,51 @@ func (t *Tree) URLFor(name string, args ...interface{}) string {
 		format = append(format, "%v"...)
 	}
 	return fmt.Sprintf(string(format), args...)
+}
+
+// Routes returns registered route uri in a string slice
+func (t *Tree) Routes() map[string][]string {
+	r := make(map[string][]string)
+	for _, method := range RouterMethodName {
+		r[method] = make([]string, 0)
+	}
+	for k := range t.nodes {
+		r[RouterMethodName[k]] = t.routes(t.nodes[k])
+	}
+
+	return r
+}
+
+// routes print the route table
+func (t *Tree) routes(l *leaf) []string {
+	if l == nil {
+		return nil
+	}
+	var data []string
+	if l.handlers != nil {
+		data = append(data, l.String())
+	}
+	l.children = append(l.children, l.paramChild)
+	l.children = append(l.children, l.wideChild)
+	for i := range l.children {
+		if l.children[i] != nil {
+			cdata := t.routes(l.children[i])
+			for i := range cdata {
+				data = append(data, l.String()+cdata[i])
+			}
+		}
+	}
+
+	return data
+}
+
+// NamedRoutes returns named route uri in a string slice
+func (t *Tree) NamedRoutes() map[string]string {
+	r := make(map[string]string)
+	for k, v := range t.nameNodes {
+		r[k] = v.pattern
+	}
+	return r
 }
 
 // Add registers a new handle with the given method, pattern and handlers.
@@ -464,9 +508,6 @@ func (l *leaf) String() string {
 	s := l.pattern
 	if l.kind == leafKindParam {
 		s += l.param
-	}
-	if l.parent != nil {
-		s = l.parent.String() + s
 	}
 	return s
 }

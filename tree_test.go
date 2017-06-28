@@ -272,3 +272,24 @@ func TestTreeRoutePrint1(t *testing.T) {
 		r.(*Tree).print("", nil)
 	})
 }
+
+func TestTreeRoutePrint2(t *testing.T) {
+	Convey("print routes", t, func() {
+		fmt.Println("")
+		for method, routes := range r.Routes() {
+			fmt.Println("Method: ", method)
+			for i, route := range routes {
+				fmt.Printf(" %3d %s\n", i, route)
+			}
+		}
+	})
+}
+
+func TestTreeRoutePrint3(t *testing.T) {
+	Convey("print named routes", t, func() {
+		fmt.Println("")
+		for name, route := range r.NamedRoutes() {
+			fmt.Printf("%20s \t %s", name, route)
+		}
+	})
+}
