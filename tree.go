@@ -206,15 +206,15 @@ func (t *Tree) URLFor(name string, args ...interface{}) string {
 
 // Routes returns registered route uri in a string slice
 func (t *Tree) Routes() map[string][]string {
-	r := make(map[string][]string)
+	routes := make(map[string][]string)
 	for _, method := range RouterMethodName {
-		r[method] = make([]string, 0)
+		routes[method] = make([]string, 0)
 	}
 	for k := range t.nodes {
-		r[RouterMethodName[k]] = t.routes(t.nodes[k])
+		routes[RouterMethodName[k]] = t.routes(t.nodes[k])
 	}
 
-	return r
+	return routes
 }
 
 // routes print the route table
@@ -242,11 +242,11 @@ func (t *Tree) routes(l *leaf) []string {
 
 // NamedRoutes returns named route uri in a string slice
 func (t *Tree) NamedRoutes() map[string]string {
-	r := make(map[string]string)
+	routes := make(map[string]string)
 	for k, v := range t.nameNodes {
-		r[k] = v.pattern
+		routes[k] = v.pattern
 	}
-	return r
+	return routes
 }
 
 // Add registers a new handle with the given method, pattern and handlers.
@@ -503,7 +503,7 @@ func (l *leaf) hasPrefixString(s string) int {
 	return i
 }
 
-// String returns full pattern of leaf
+// String returns pattern of leaf
 func (l *leaf) String() string {
 	s := l.pattern
 	if l.kind == leafKindParam {
