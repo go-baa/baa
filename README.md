@@ -80,6 +80,7 @@ https://github.com/go-baa/example
 * [nocache](https://github.com/baa-middleware/nocache)
 * [jwt](https://github.com/baa-middleware/jwt)
 * [cors](https://github.com/baa-middleware/cors)
+* [authz](https://github.com/baa-middleware/authz)
 
 ## Components
 

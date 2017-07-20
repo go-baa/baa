@@ -78,6 +78,9 @@ https://github.com/go-baa/example
 * [static](https://github.com/baa-middleware/static)
 * [requestcache](https://github.com/baa-middleware/requestcache)
 * [nocache](https://github.com/baa-middleware/nocache)
+* [jwt](https://github.com/baa-middleware/jwt)
+* [cors](https://github.com/baa-middleware/cors)
+* [authz](https://github.com/baa-middleware/authz)
 
 ## 组件
 
