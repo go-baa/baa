@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,6 +16,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+)
+
+var (
+	// ErrJSONPayloadEmpty is returned when the JSON payload is empty.
+	ErrJSONPayloadEmpty = errors.New("JSON payload is empty")
+
+	// ErrXMLPayloadEmpty is returned when the XML payload is empty.
+	ErrXMLPayloadEmpty = errors.New("XML payload is empty")
 )
 
 const (
@@ -268,6 +277,38 @@ func (c *Context) Posts() map[string]interface{} {
 		}
 	}
 	return params
+}
+
+// QueryJSON decode json from http.Request.Body
+func (c *Context) QueryJSON(v interface{}) error {
+	content, err := c.Body().Bytes()
+	if err != nil {
+		return err
+	}
+	if len(content) == 0 {
+		return ErrJSONPayloadEmpty
+	}
+	err = json.Unmarshal(content, v)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// QueryXML decode xml from http.Request.Body
+func (c *Context) QueryXML(v interface{}) error {
+	content, err := c.Body().Bytes()
+	if err != nil {
+		return err
+	}
+	if len(content) == 0 {
+		return ErrXMLPayloadEmpty
+	}
+	err = xml.Unmarshal(content, v)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetFile returns information about user upload file by given form field name.

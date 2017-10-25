@@ -2,6 +2,7 @@ package baa
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -213,6 +214,65 @@ func TestContextQuery1(t *testing.T) {
 			data.Add("d", "3")
 			req, _ := http.NewRequest("POST", "/contextp/1?a=1&b=1&d=1", strings.NewReader(data.Encode()))
 			req.Header.Set("Content-Type", ApplicationForm)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("body json param", func() {
+			dataSource := map[string]interface{}{"test": "json"}
+			b.Post("/context/json", func(c *Context) {
+				var dataFromBody map[string]interface{}
+				c.QueryJSON(&dataFromBody)
+				So(dataFromBody["test"], ShouldEqual, dataSource["test"])
+			})
+			body, _ := json.Marshal(dataSource)
+			req, _ := http.NewRequest("POST", "/context/json", bytes.NewReader(body))
+			req.Header.Set("Content-Type", ApplicationJSON)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("body json param is empty", func() {
+			b.Post("/context/json/empty", func(c *Context) {
+				var dataFromBody map[string]interface{}
+				err := c.QueryJSON(&dataFromBody)
+				So(err, ShouldBeError, ErrJSONPayloadEmpty)
+			})
+			req, _ := http.NewRequest("POST", "/context/json/empty", strings.NewReader(""))
+			req.Header.Set("Content-Type", ApplicationJSON)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("body xml param", func() {
+			type XML struct {
+				Test string `xml:"test"`
+			}
+			dataSource := XML{Test: "xml"}
+			b.Post("/context/xml", func(c *Context) {
+				var dataFromBody XML
+				c.QueryXML(&dataFromBody)
+				So(dataFromBody.Test, ShouldEqual, dataSource.Test)
+			})
+			body, _ := xml.Marshal(dataSource)
+			req, _ := http.NewRequest("POST", "/context/xml", bytes.NewReader(body))
+			req.Header.Set("Content-Type", ApplicationXML)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("body xml param is empty", func() {
+			b.Post("/context/xml/empty", func(c *Context) {
+				var dataFromBody map[string]interface{}
+				err := c.QueryXML(&dataFromBody)
+				So(err, ShouldBeError, ErrXMLPayloadEmpty)
+			})
+			req, _ := http.NewRequest("POST", "/context/xml/empty", strings.NewReader(""))
+			req.Header.Set("Content-Type", ApplicationXML)
 			w := httptest.NewRecorder()
 			b.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, http.StatusOK)
