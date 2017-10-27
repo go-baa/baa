@@ -234,6 +234,38 @@ func TestContextQuery1(t *testing.T) {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 
+		Convey("body json param nil", func() {
+			dataSource := map[string]interface{}{"test": "json"}
+			b.Post("/context/json2", func(c *Context) {
+				var dataFromBody interface{}
+				c.QueryJSON(dataFromBody)
+				So(dataFromBody, ShouldBeNil)
+			})
+			body, _ := json.Marshal(dataSource)
+			req, _ := http.NewRequest("POST", "/context/json2", bytes.NewReader(body))
+			req.Header.Set("Content-Type", ApplicationJSON)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("body json param diffrent struct", func() {
+			dataSource := map[string]interface{}{"test": "json"}
+			b.Post("/context/json3", func(c *Context) {
+				var dataFromBody struct {
+					Test string
+				}
+				c.QueryJSON(&dataFromBody)
+				So(dataFromBody.Test, ShouldEqual, dataSource["test"])
+			})
+			body, _ := json.Marshal(dataSource)
+			req, _ := http.NewRequest("POST", "/context/json3", bytes.NewReader(body))
+			req.Header.Set("Content-Type", ApplicationJSON)
+			w := httptest.NewRecorder()
+			b.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+
 		Convey("body json param is empty", func() {
 			b.Post("/context/json/empty", func(c *Context) {
 				var dataFromBody map[string]interface{}
