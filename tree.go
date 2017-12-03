@@ -256,9 +256,13 @@ func (t *Tree) Add(method, pattern string, handlers []HandlerFunc) RouteNode {
 		t.add("HEAD", pattern, handlers)
 	}
 	if t.autoTrailingSlash && (len(pattern) > 1 || len(t.groups) > 0) {
-		if pattern[len(pattern)-1] == '/' {
+		var index byte
+		if len(pattern) > 0 {
+			index = pattern[len(pattern)-1]
+		}
+		if index == '/' {
 			t.add(method, pattern[:len(pattern)-1], handlers)
-		} else if pattern[len(pattern)-1] == '*' {
+		} else if index == '*' {
 			// wideChild not need trail slash
 		} else {
 			t.add(method, pattern+"/", handlers)
