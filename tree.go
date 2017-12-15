@@ -133,11 +133,7 @@ func (t *Tree) Match(method, pattern string, c *Context) ([]HandlerFunc, string)
 		case leafKindParam:
 			// params route
 			l = len(pattern)
-			if current.childrenNum == 0 {
-				i = l
-			} else {
-				for i = 0; i < l && pattern[i] != '/'; i++ {
-				}
+			for i = 0; i < l && pattern[i] != '/'; i++ {
 			}
 			c.SetParam(current.param, pattern[:i])
 			pattern = pattern[i:]
