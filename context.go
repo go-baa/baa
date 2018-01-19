@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -288,7 +290,7 @@ func (c *Context) QueryJSON(v interface{}) error {
 	if len(content) == 0 {
 		return ErrJSONPayloadEmpty
 	}
-	return json.Unmarshal(content, v)
+	return jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(content, v)
 }
 
 // QueryXML decode xml from http.Request.Body
