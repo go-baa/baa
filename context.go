@@ -2,7 +2,6 @@ package baa
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -16,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/go-baa/baa/json"
 )
 
 var (

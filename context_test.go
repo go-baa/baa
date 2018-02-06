@@ -2,7 +2,6 @@ package baa
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-baa/baa/json"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
