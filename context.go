@@ -15,8 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/go-baa/baa/json"
 )
 
 var (
@@ -289,7 +287,7 @@ func (c *Context) QueryJSON(v interface{}) error {
 	if len(content) == 0 {
 		return ErrJSONPayloadEmpty
 	}
-	return json.Unmarshal(content, v)
+	return Unmarshal(content, v)
 }
 
 // QueryXML decode xml from http.Request.Body
@@ -445,9 +443,9 @@ func (c *Context) JSON(code int, v interface{}) {
 	var re []byte
 	var err error
 	if c.baa.debug {
-		re, err = json.MarshalIndent(v, "", "  ")
+		re, err = MarshalIndent(v, "", "  ")
 	} else {
-		re, err = json.Marshal(v)
+		re, err = Marshal(v)
 	}
 	if err != nil {
 		c.Error(err)
@@ -464,9 +462,9 @@ func (c *Context) JSONString(v interface{}) (string, error) {
 	var re []byte
 	var err error
 	if c.baa.debug {
-		re, err = json.MarshalIndent(v, "", "  ")
+		re, err = MarshalIndent(v, "", "  ")
 	} else {
-		re, err = json.Marshal(v)
+		re, err = Marshal(v)
 	}
 	if err != nil {
 		return "", err
@@ -476,7 +474,7 @@ func (c *Context) JSONString(v interface{}) (string, error) {
 
 // JSONP write data by jsonp format
 func (c *Context) JSONP(code int, callback string, v interface{}) {
-	re, err := json.Marshal(v)
+	re, err := Marshal(v)
 	if err != nil {
 		c.Error(err)
 		return

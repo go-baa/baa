@@ -1,6 +1,6 @@
 // +build !jsoniter
 
-package json
+package baa
 
 import "encoding/json"
 
