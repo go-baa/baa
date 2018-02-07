@@ -2,7 +2,6 @@ package baa
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -226,7 +225,7 @@ func TestContextQuery1(t *testing.T) {
 				c.QueryJSON(&dataFromBody)
 				So(dataFromBody["test"], ShouldEqual, dataSource["test"])
 			})
-			body, _ := json.Marshal(dataSource)
+			body, _ := Marshal(dataSource)
 			req, _ := http.NewRequest("POST", "/context/json", bytes.NewReader(body))
 			req.Header.Set("Content-Type", ApplicationJSON)
 			w := httptest.NewRecorder()
@@ -241,7 +240,7 @@ func TestContextQuery1(t *testing.T) {
 				c.QueryJSON(dataFromBody)
 				So(dataFromBody, ShouldBeNil)
 			})
-			body, _ := json.Marshal(dataSource)
+			body, _ := Marshal(dataSource)
 			req, _ := http.NewRequest("POST", "/context/json2", bytes.NewReader(body))
 			req.Header.Set("Content-Type", ApplicationJSON)
 			w := httptest.NewRecorder()
@@ -258,7 +257,7 @@ func TestContextQuery1(t *testing.T) {
 				c.QueryJSON(&dataFromBody)
 				So(dataFromBody.Test, ShouldEqual, dataSource["test"])
 			})
-			body, _ := json.Marshal(dataSource)
+			body, _ := Marshal(dataSource)
 			req, _ := http.NewRequest("POST", "/context/json3", bytes.NewReader(body))
 			req.Header.Set("Content-Type", ApplicationJSON)
 			w := httptest.NewRecorder()
