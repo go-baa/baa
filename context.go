@@ -1,6 +1,7 @@
 package baa
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/xml"
 	"errors"
@@ -532,7 +533,24 @@ func (c *Context) Fetch(tpl string) ([]byte, error) {
 	if err := c.baa.Render().Render(buf, tpl, c.Gets()); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	// clear go template generated black lines
+	nbuf := new(bytes.Buffer)
+	r := bufio.NewReader(buf)
+	for {
+		line, _, err := r.ReadLine()
+		if err != nil {
+			break
+		}
+		clearLine := strings.TrimSpace(string(line))
+		if len(clearLine) == 0 {
+			continue
+		}
+		nbuf.Write(line)
+		nbuf.WriteRune('\n')
+	}
+
+	return nbuf.Bytes(), nil
 }
 
 // Redirect redirects the request using http.Redirect with status code.
