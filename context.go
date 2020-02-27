@@ -571,7 +571,7 @@ func (c *Context) RemoteAddr() string {
 		return addr
 	}
 
-	for _, k := range []string{"Ali-Cdn-Real-Ip", "X-Real-IP", "X-Forwarded-For"} {
+	for _, k := range []string{"X-Forwarded-For", "Ali-Cdn-Real-Ip", "X-Real-IP"} {
 		if addr = c.Req.Header.Get(k); addr != "" {
 			if strings.Contains(addr, ",") {
 				addrs := strings.Split(addr, ",")
