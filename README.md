@@ -15,7 +15,7 @@ Baa is ``no reflect``, ``no regexp``.
 Install:
 
 ```
-go get -u gopkg.in/baa.v1
+go get -u github.com/go-baa/baa
 ```
 
 Example:
@@ -25,7 +25,7 @@ Example:
 package main
 
 import (
-    "gopkg.in/baa.v1"
+    "github.com/go-baa/baa"
 )
 
 func main() {
@@ -133,7 +133,7 @@ Baa:
 package main
 
 import (
-	"gopkg.in/baa.v1"
+	"github.com/go-baa/baa"
 )
 
 func main() {
