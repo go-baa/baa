@@ -329,7 +329,7 @@ func (b *Baa) Websocket(pattern string, h func(*websocket.Conn)) RouteNode {
 	return b.Route(pattern, "GET,POST", func(c *Context) {
 		conn, err := upgrader.Upgrade(c.Resp, c.Req, nil)
 		if err != nil {
-			b.Logger().Panicf("websocket upgrade connection error: %v", err)
+			b.Logger().Printf("websocket upgrade connection error: %v", err)
 			return
 		}
 		h(conn)
