@@ -135,6 +135,9 @@ func (t *Tree) Match(method, pattern string, c *Context) ([]HandlerFunc, string)
 			l = len(pattern)
 			for i = 0; i < l && pattern[i] != '/'; i++ {
 			}
+			if len(pattern[:i]) == 0 {
+				return nil, "" // param is empty
+			}
 			c.SetParam(current.param, pattern[:i])
 			pattern = pattern[i:]
 			root = current

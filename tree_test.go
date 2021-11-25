@@ -267,6 +267,18 @@ func TestTreeRouteMatch1(t *testing.T) {
 	})
 }
 
+func TestTreeRouteMatch2(t *testing.T) {
+	Convey("match route with params", t, func() {
+		b.Get("/withparams/:id", f)
+		ru, _ := r.Match("GET", "/withparams/:id", c)
+		So(ru, ShouldNotBeNil)
+		ru, _ = r.Match("GET", "/withparams", c)
+		So(ru, ShouldBeNil)
+		ru, _ = r.Match("GET", "/withparams/", c)
+		So(ru, ShouldBeNil)
+	})
+}
+
 func TestTreeRoutePrint1(t *testing.T) {
 	Convey("print route table", t, func() {
 		r.(*Tree).print("", nil)
