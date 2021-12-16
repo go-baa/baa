@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -565,8 +566,7 @@ func (c *Context) Redirect(code int, url string) error {
 // RemoteAddr returns more real IP address.
 func (c *Context) RemoteAddr() string {
 	var addr string
-	var key string
-	key = "__ctx_remoteAddr"
+	key := "__ctx_remoteAddr"
 	if addr, ok := c.Get(key).(string); ok {
 		return addr
 	}
@@ -716,4 +716,50 @@ func (c *Context) Baa() *Baa {
 // DI get registered dependency injection service
 func (c *Context) DI(name string) interface{} {
 	return c.baa.GetDI(name)
+}
+
+/**
+  implement for context.Context
+*/
+
+// Deadline returns that there is no deadline (ok==false) when c.Req has no Context.
+func (c *Context) Deadline() (deadline time.Time, ok bool) {
+	if c.Req == nil || c.Req.Context() == nil {
+		return
+	}
+	return c.Req.Context().Deadline()
+}
+
+// Done returns nil (chan which will wait forever) when c.Req has no Context.
+func (c *Context) Done() <-chan struct{} {
+	if c.Req == nil || c.Req.Context() == nil {
+		return nil
+	}
+	return c.Req.Context().Done()
+}
+
+// Err returns nil when c.Req has no Context.
+func (c *Context) Err() error {
+	if c.Req == nil || c.Req.Context() == nil {
+		return nil
+	}
+	return c.Req.Context().Err()
+}
+
+// Value returns the value associated with this context for key, or nil
+// if no value is associated with key. Successive calls to Value with
+// the same key returns the same result.
+func (c *Context) Value(key interface{}) interface{} {
+	if key == 0 {
+		return c.Req
+	}
+	if keyAsString, ok := key.(string); ok {
+		if val := c.Get(keyAsString); val != nil {
+			return val
+		}
+	}
+	if c.Req == nil || c.Req.Context() == nil {
+		return nil
+	}
+	return c.Req.Context().Value(key)
 }

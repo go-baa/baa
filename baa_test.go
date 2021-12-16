@@ -21,7 +21,7 @@ func (t *newHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("m3 http.Handler.ServeHTTP", "true")
 }
 
-func TestNew1(t *testing.T) {
+func TestNew(t *testing.T) {
 	Convey("new baa app", t, func() {
 		b2 := New()
 		So(b2, ShouldNotBeNil)
@@ -35,7 +35,7 @@ func TestNew1(t *testing.T) {
 	})
 }
 
-func TestRun1(t *testing.T) {
+func TestRun(t *testing.T) {
 	Convey("run baa app", t, func() {
 		Convey("run baa app normal", func() {
 			b3 := New()
@@ -56,7 +56,7 @@ func TestRun1(t *testing.T) {
 	})
 }
 
-func TestServeHTTP1(t *testing.T) {
+func TestServeHTTP(t *testing.T) {
 	Convey("ServeHTTP", t, func() {
 		Convey("normal serve", func() {
 			b.Get("/ok", func(c *Context) {

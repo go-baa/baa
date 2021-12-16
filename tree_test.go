@@ -279,13 +279,13 @@ func TestTreeRouteMatch2(t *testing.T) {
 	})
 }
 
-func TestTreeRoutePrint1(t *testing.T) {
+func _TestTreeRoutePrint1(t *testing.T) {
 	Convey("print route table", t, func() {
 		r.(*Tree).print("", nil)
 	})
 }
 
-func TestTreeRoutePrint2(t *testing.T) {
+func _TestTreeRoutePrint2(t *testing.T) {
 	Convey("print routes", t, func() {
 		fmt.Println("")
 		for method, routes := range r.Routes() {
@@ -297,7 +297,7 @@ func TestTreeRoutePrint2(t *testing.T) {
 	})
 }
 
-func TestTreeRoutePrint3(t *testing.T) {
+func _TestTreeRoutePrint3(t *testing.T) {
 	Convey("print named routes", t, func() {
 		fmt.Println("")
 		for name, route := range r.NamedRoutes() {

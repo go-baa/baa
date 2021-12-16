@@ -2,6 +2,7 @@ package baa
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -17,7 +18,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestContextStore1(t *testing.T) {
+var _ context.Context = &Context{}
+
+func TestContextStore(t *testing.T) {
 	Convey("context store", t, func() {
 		b.Get("/context", func(c *Context) {
 			c.Get("name")
@@ -32,7 +35,7 @@ func TestContextStore1(t *testing.T) {
 	})
 }
 
-func TestContextParam1(t *testing.T) {
+func TestContextParam(t *testing.T) {
 	Convey("context route param", t, func() {
 		Convey("param", func() {
 			b.Get("/context/p1/:id", func(c *Context) {
@@ -96,7 +99,7 @@ func TestContextParam1(t *testing.T) {
 	})
 }
 
-func TestContextQuery1(t *testing.T) {
+func TestContextQuery(t *testing.T) {
 	Convey("context query param", t, func() {
 		Convey("query string param", func() {
 			b.Get("/context/1/:id", func(c *Context) {
@@ -311,7 +314,7 @@ func TestContextQuery1(t *testing.T) {
 	})
 }
 
-func TestContextFile1(t *testing.T) {
+func TestContextFile(t *testing.T) {
 	Convey("context file", t, func() {
 		b.Post("/file", func(c *Context) {
 			c.Posts()
@@ -329,7 +332,7 @@ func TestContextFile1(t *testing.T) {
 	})
 }
 
-func TestContextCookie1(t *testing.T) {
+func TestContextCookie(t *testing.T) {
 	Convey("context cookie", t, func() {
 		Convey("cookie get", func() {
 			b.Get("/cookie/get", func(c *Context) {
@@ -376,8 +379,9 @@ func TestContextCookie1(t *testing.T) {
 	})
 }
 
-func TestContextWrite1(t *testing.T) {
+func TestContextWriter(t *testing.T) {
 	Convey("context writer", t, func() {
+		b.SetDebug(true)
 		Convey("write string", func() {
 			b.Get("/writer/string", func(c *Context) {
 				c.String(200, "abc\n")
@@ -472,7 +476,7 @@ func TestContextWrite1(t *testing.T) {
 	})
 }
 
-func TestContextWrite2(t *testing.T) {
+func TestContextWrite_WithoutDebug(t *testing.T) {
 	Convey("context writer without debug mode", t, func() {
 		b.SetDebug(false)
 		Convey("write JSON", func() {
@@ -495,7 +499,7 @@ func TestContextWrite2(t *testing.T) {
 	b.SetDebug(true)
 }
 
-func TestConextRedirect1(t *testing.T) {
+func TestConextRedirect(t *testing.T) {
 	Convey("redirect", t, func() {
 		Convey("redirect normal", func() {
 			b.Get("/redirect/1", func(c *Context) {
@@ -514,7 +518,7 @@ func TestConextRedirect1(t *testing.T) {
 	})
 }
 
-func TestContextIP1(t *testing.T) {
+func TestContextIP(t *testing.T) {
 	Convey("get remote addr", t, func() {
 		b.Get("/ip", func(c *Context) {
 			ip := c.RemoteAddr()
@@ -539,7 +543,7 @@ func TestContextIP1(t *testing.T) {
 	})
 }
 
-func TestContext2(t *testing.T) {
+func TestContextUnits(t *testing.T) {
 	Convey("request methods", t, func() {
 		Convey("Referer, UserAgent, IsMobile", func() {
 			b.Get("/req", func(c *Context) {
@@ -599,7 +603,17 @@ func TestContext2(t *testing.T) {
 	})
 }
 
-func TestContextBaa1(t *testing.T) {
+func TestContextContext(t *testing.T) {
+	Convey("context cancel", t, func() {
+		c.Req, _ = http.NewRequest("GET", "/context", nil)
+		ctx, cancel := context.WithCancel(c)
+		cancel()
+		ctx.Done()
+		So(ctx.Err(), ShouldEqual, context.Canceled)
+	})
+}
+
+func TestContextBaa(t *testing.T) {
 	Convey("get baa", t, func() {
 		Convey("get baa", func() {
 			So(c.Baa(), ShouldNotBeNil)
@@ -626,7 +640,7 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path 
 	if err != nil {
 		return nil, err
 	}
-	_, err = io.Copy(part, file)
+	_, _ = io.Copy(part, file)
 
 	for key, val := range params {
 		_ = writer.WriteField(key, val)
