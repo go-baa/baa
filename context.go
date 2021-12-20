@@ -3,6 +3,7 @@ package baa
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -289,7 +290,7 @@ func (c *Context) QueryJSON(v interface{}) error {
 	if len(content) == 0 {
 		return ErrJSONPayloadEmpty
 	}
-	return Unmarshal(content, v)
+	return json.Unmarshal(content, v)
 }
 
 // QueryXML decode xml from http.Request.Body
@@ -445,9 +446,9 @@ func (c *Context) JSON(code int, v interface{}) {
 	var re []byte
 	var err error
 	if c.baa.debug {
-		re, err = MarshalIndent(v, "", "  ")
+		re, err = json.MarshalIndent(v, "", "  ")
 	} else {
-		re, err = Marshal(v)
+		re, err = json.Marshal(v)
 	}
 	if err != nil {
 		c.Error(err)
@@ -464,9 +465,9 @@ func (c *Context) JSONString(v interface{}) (string, error) {
 	var re []byte
 	var err error
 	if c.baa.debug {
-		re, err = MarshalIndent(v, "", "  ")
+		re, err = json.MarshalIndent(v, "", "  ")
 	} else {
-		re, err = Marshal(v)
+		re, err = json.Marshal(v)
 	}
 	if err != nil {
 		return "", err
@@ -476,7 +477,7 @@ func (c *Context) JSONString(v interface{}) (string, error) {
 
 // JSONP write data by jsonp format
 func (c *Context) JSONP(code int, callback string, v interface{}) {
-	re, err := Marshal(v)
+	re, err := json.Marshal(v)
 	if err != nil {
 		c.Error(err)
 		return
