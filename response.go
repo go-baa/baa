@@ -2,6 +2,7 @@ package baa
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -69,14 +70,27 @@ func (r *Response) WriteHeader(code int) {
 // buffered data to the client.
 // See [http.Flusher](https://golang.org/pkg/net/http/#Flusher)
 func (r *Response) Flush() {
-	r.resp.(http.Flusher).Flush()
+	if v, ok := r.resp.(http.Flusher); ok {
+		v.Flush()
+	}
+}
+
+// Pusher is the interface implemented by ResponseWriters that support
+// HTTP/2 server push. For more background, see
+// https://tools.ietf.org/html/rfc7540#section-8.2.
+func (r *Response) Pusher() (http.Pusher, bool) {
+	v, ok := r.resp.(http.Pusher)
+	return v, ok
 }
 
 // Hijack implements the http.Hijacker interface to allow an HTTP handler to
 // take over the connection.
 // See [http.Hijacker](https://golang.org/pkg/net/http/#Hijacker)
 func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return r.resp.(http.Hijacker).Hijack()
+	if v, ok := r.resp.(http.Hijacker); ok {
+		return v.Hijack()
+	}
+	return nil, nil, errors.New("http.response denot implements the http.Hijacker")
 }
 
 // CloseNotify implements the http.CloseNotifier interface to allow detecting
