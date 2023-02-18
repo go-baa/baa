@@ -249,7 +249,8 @@ func (b *Baa) SetAutoTrailingSlash(v bool) {
 // Route is a shortcut for same handlers but different HTTP methods.
 //
 // Example:
-// 		baa.Route("/", "GET,POST", h)
+//
+//	baa.Route("/", "GET,POST", h)
 func (b *Baa) Route(pattern, methods string, h ...HandlerFunc) RouteNode {
 	var ru RouteNode
 	var ms []string
@@ -358,7 +359,7 @@ func (b *Baa) SetError(h ErrorHandleFunc) {
 // Error execute internal error handler
 func (b *Baa) Error(err error, c *Context) {
 	if err == nil {
-		err = errors.New("Internal Server Error")
+		err = errors.New("internal server error")
 	}
 	if b.errorHandler != nil {
 		b.errorHandler(err, c)

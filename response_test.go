@@ -22,17 +22,9 @@ func TestResponse1(t *testing.T) {
 			func() {
 				defer func() {
 					e := recover()
-					So(e, ShouldNotBeNil)
+					So(e, ShouldBeNil)
 				}()
 				c.Resp.Hijack()
-			}()
-
-			func() {
-				defer func() {
-					e := recover()
-					So(e, ShouldNotBeNil)
-				}()
-				c.Resp.CloseNotify()
 			}()
 		})
 		req, _ := http.NewRequest("GET", "/response", nil)

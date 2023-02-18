@@ -93,15 +93,6 @@ func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, errors.New("http.response denot implements the http.Hijacker")
 }
 
-// CloseNotify implements the http.CloseNotifier interface to allow detecting
-// when the underlying connection has gone away.
-// This mechanism can be used to cancel long operations on the server if the
-// client has disconnected before the response is ready.
-// See [http.CloseNotifier](https://golang.org/pkg/net/http/#CloseNotifier)
-func (r *Response) CloseNotify() <-chan bool {
-	return r.resp.(http.CloseNotifier).CloseNotify()
-}
-
 // reset reuse response
 func (r *Response) reset(w http.ResponseWriter) {
 	r.resp = w

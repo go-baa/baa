@@ -522,9 +522,9 @@ func TestConextRedirect(t *testing.T) {
 func TestContextIP(t *testing.T) {
 	Convey("get remote addr", t, func() {
 		b.Get("/ip", func(c *Context) {
+			_ = c.RemoteAddr()
+			_ = c.RemoteAddr()
 			ip := c.RemoteAddr()
-			ip = c.RemoteAddr()
-			ip = c.RemoteAddr()
 			So(ip, ShouldEqual, "10.1.2.1")
 		})
 		b.Get("/ip2", func(c *Context) {
